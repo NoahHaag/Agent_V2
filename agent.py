@@ -71,58 +71,42 @@ gmail_search_agent = LlmAgent(
     model=Gemini(model="gemini-2.5-flash-lite", retry_options=retry_config),
     description="searches gmail to answer questions about emails the user has received.",
     instruction="""
-    You are a dedicated Gmail sub-agent, responsible for understanding the user's natural language requests about emails 
-    and converting them into precise Gmail search queries.
-    
-    PRIORITY RULES:
-    - Convert the user's request into a valid Gmail query (e.g., "summarize my latest email from DAIR.AI" → "from:dair.ai label:inbox").
-    - Sort by newest and include unread filters if implied by context.
-    - Use the gmail_read_tool_for_agent to fetch messages.
-    - Summarize emails clearly and concisely, using bullets or JSON when helpful.
-    - Always log reasoning and query to the scratchpad for traceability.
-    - Do not hallucinate or invent email content.
-    - Use the 'text' field from each message returned by gmail_read_tool_for_agent.
-    - Ignore any non-text parts or structured data.
-    
+    You are a dedicated Gmail sub-agent. Your ONLY job is to convert natural language into Gmail search queries.
+
+    CRITICAL: You ONLY filter by sender, label, and unread status. DO NOT add content-based keywords.
+    The root agent will analyze content AFTER you fetch emails.
+
+    DEFAULT BEHAVIOR:
+    - If no specific filter is requested, search ALL emails in the inbox (`label:inbox`).
+    - **Do NOT assume the user only wants unread emails.**
+    - **Do NOT add keywords about email content (like "jobs", "invoice", etc.).**
+
+    QUERY CONSTRUCTION RULES:
+    1. **Sender:** If user mentions a sender, add `from:sender`. Otherwise, omit it.
+    2. **Unread:** Add `is:unread` ONLY if user explicitly says "unread", "new", or "unseen".
+    3. **Label:** Default to `label:inbox`.
+    4. **Content keywords:** NEVER add. Questions about content (like "which have jobs") should be answered by the root agent after fetching.
+
     FEW-SHOT EXAMPLES:
     
     Example 1:
     User: "summarize my latest email from DAIR.AI"
-    Scratchpad Reasoning:
-    - Identify sender: DAIR.AI
-    - User wants the latest message
     Gmail Query: "from:dair.ai label:inbox"
     Next Action: call gmail_read_tool_for_agent with max_results=1
     
     Example 2:
-    User: "show unread messages from Jarret Byrnes"
-    Scratchpad Reasoning:
-    - Identify sender: Jarret Byrnes
-    - Include only unread messages
-    Gmail Query: "from:jarret.byrnes@umb.edu is:unread label:inbox"
+    User: "show messages from Jarret Byrnes"
+    Gmail Query: "from:jarret.byrnes@umb.edu label:inbox"
     Next Action: call gmail_read_tool_for_agent with max_results=5
     
     Example 3:
-    User: "who sent me my most recent email"
-    Scratchpad Reasoning:
-    - User wants latest email from any sender
-    - Default to inbox
-    Gmail Query: "label:inbox"
-    Next Action: call gmail_read_tool_for_agent with max_results=1
-    
+    User: "i recieved several emails from ecolog-l, do any have jobs"
+    Gmail Query: "from:ecolog-l label:inbox"
+    (NOT "from:ecolog-l jobs" - keyword filtering happens later)
+    Next Action: call gmail_read_tool_for_agent with max_results=10
+
     Example 4:
-    User: "summarize my emails from last week about job applications"
-    Scratchpad Reasoning:
-    - Filter emails from last 7 days
-    - Look for keywords: "job application"
-    Gmail Query: "label:inbox after:YYYY/MM/DD subject:(job application)"
-    Next Action: call gmail_read_tool_for_agent with max_results=5
-    
-    Example 5:
     User: "summarize my last unread email"
-    Scratchpad Reasoning:
-    - User wants most recent unread message
-    - Filter by unread status
     Gmail Query: "is:unread label:inbox"
     Next Action: call gmail_read_tool_for_agent with query="is:unread label:inbox", max_results=1
     """,
@@ -162,11 +146,11 @@ root_agent = LlmAgent(
     - Don't retry the same failed action
     - Suggest alternative approaches
 
-OUTPUT FORMAT:
-- Use bullet points for lists
-- Keep responses under 200 words by default
-- Number multi-step instructions
-    - Cite sources for external data
+    OUTPUT FORMAT:
+    - Use bullet points for lists
+    - Keep responses under 200 words by default
+    - Number multi-step instructions
+        - Cite sources for external data
     """,
     instruction="""
     You are a user-facing career assistant. You help the user with job searches, résumés, CV review, interview preparation, professional communication, and outreach to relevant researchers.
@@ -222,6 +206,11 @@ OUTPUT FORMAT:
     - an email draft
     - outreach to a researcher, recruiter, or company
     - rewriting or improving an email
+    
+    **CRITICAL WARNING:**
+    - NEVER use the draft tool to "search", "find", or "check" for emails.
+    - If the user provides an email address to *look up*, use gmail_search_agent.
+    - Only use this tool if the user explicitly wants to *send* or *write* something.
 
     Before drafting:
     - Use the scratchpad to record: task, key points, reasoning (≤300 chars).
@@ -412,10 +401,6 @@ async def main():
     print(f"=== {session_id} Research Assistant ===")
     print("Type 'q', quit' or 'exit' to end.\n")
 
-    print(f"=== {session_id} Research Assistant ===")
-    print("Type 'q', quit' or 'exit' to end.\n")
-
-    turn_count = 0
     history_buffer = []
 
     while True:
@@ -446,39 +431,52 @@ async def main():
         if final_answer:
             history_buffer.append(f"User: {user_query}")
             history_buffer.append(f"Agent: {final_answer}")
-            turn_count += 1
-
-            if turn_count % 20 == 0:
-                print("\n[System] Summarizing conversation history...")
-                history_text = "\n".join(history_buffer)
-                summary = await summarize_conversation(history_text, llm)
-                print(f"\n[Summary]: {summary}\n")
-                
-                # Reset Session to clear memory
-                print("[System] Pruning memory to prevent degradation...")
-                await runner.session_service.delete_session(
-                    app_name="Agent_V2", 
-                    user_id=user_id, 
+            
+            # Check total event count in database instead of turn count
+            try:
+                session_events = await runner.session_service.get_session(
+                    app_name="Agent_V2",
+                    user_id=user_id,
                     session_id=session_id
                 )
-                # Re-create session
-                session = await runner.session_service.create_session(
-                    app_name="Agent_V2", 
-                    user_id=user_id, 
-                    session_id=session_id
-                )
+                # Get the number of events (messages) in the session
+                event_count = len(session_events.content) if session_events and hasattr(session_events, 'content') else 0
                 
-                # Seed with summary
-                seed_text = f"SYSTEM UPDATE: The conversation memory has been pruned. Here is the summary of the previous conversation to provide context:\n{summary}"
-                seed_message = types.Content(role="user", parts=[types.Part(text=seed_text)])
-                
-                print("[System] Seeding new session with summary...")
-                # Run the agent with the summary to establish context (suppress output)
-                async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=seed_message):
-                    pass 
-                
-                # Reset buffer, keeping the summary as the start
-                history_buffer = [f"Summary: {summary}"]
+                # Trigger summarization every 40 events (20 user messages + 20 agent responses)
+                if event_count >= 40 and event_count % 40 < 2:  # Small window to avoid missing the trigger
+                    print(f"\n[System] {event_count} events detected. Summarizing conversation history...")
+                    history_text = "\n".join(history_buffer)
+                    summary = await summarize_conversation(history_text, llm)
+                    print(f"\n[Summary]: {summary}\n")
+                    
+                    # Reset Session to clear memory
+                    print("[System] Pruning memory to prevent degradation...")
+                    await runner.session_service.delete_session(
+                        app_name="Agent_V2", 
+                        user_id=user_id, 
+                        session_id=session_id
+                    )
+                    # Re-create session
+                    session = await runner.session_service.create_session(
+                        app_name="Agent_V2", 
+                        user_id=user_id, 
+                        session_id=session_id
+                    )
+                    
+                    # Seed with summary
+                    seed_text = f"SYSTEM UPDATE: The conversation memory has been pruned. Here is the summary of the previous conversation to provide context:\n{summary}"
+                    seed_message = types.Content(role="user", parts=[types.Part(text=seed_text)])
+                    
+                    print("[System] Seeding new session with summary...")
+                    # Run the agent with the summary to establish context (suppress output)
+                    async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=seed_message):
+                        pass 
+                    
+                    # Reset buffer, keeping the summary as the start
+                    history_buffer = [f"Summary: {summary}"]
+            except Exception as e:
+                # If event count check fails, log but continue
+                print(f"[DEBUG] Could not check event count: {e}")
 
 
 

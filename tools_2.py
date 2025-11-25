@@ -20,11 +20,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Keys are now loaded from .env
-# os.environ["GOOGLE_API_KEY"] and "GOOGLE_ENVIRON_SECRET" are handled by load_dotenv if present,
-# or we can explicitly ensure they are set if needed by the library.
-# The libraries usually check os.environ directly.
-
 
 DOCUMENT_FOLDER = "documents"
 SCRATCHPAD_FILE = "agent_scratchpad.txt"
