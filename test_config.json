@@ -1,0 +1,9 @@
+{
+  "criteria": {
+    "response_match_score": 0.8
+  },
+  "max_turns": 1,
+  "timeout_per_turn_seconds": 5,
+  "timeout_total_seconds": 10,
+  "max_eval_time_seconds": 10
+}

@@ -1,0 +1,15 @@
+google-adk
+google-genai
+google-generativeai
+langchain-community
+langchain-google-community
+chromadb
+pypdf2
+python-docx
+beautifulsoup4
+litellm
+langchain-ollama
+google-auth-oauthlib
+reportlab
+docx2pdf
+python-dotenv

@@ -1,0 +1,29 @@
+{
+  "eval_set_id": "cv_and_google_integration_suite",
+  "eval_cases": [
+    {
+      "eval_id": "non_cv_general_question",
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [
+              {
+                "text": "What is the capital of Japan?"
+              }
+            ]
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Tokyo"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ]
+    }
+  ]
+}

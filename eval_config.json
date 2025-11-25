@@ -1,0 +1,12 @@
+{
+    "metrics": [
+        {
+            "name": "tool_trajectory_avg_score",
+            "pass_threshold": 0.7
+        },
+        {
+            "name": "response_match_score",
+            "pass_threshold": 0.5
+        }
+    ]
+}
