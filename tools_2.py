@@ -696,21 +696,36 @@ def create_gmail_tools(
 
 
 # ---------------------------------------------------------------------
-# Load Gmail tools
+# Load Gmail tools (optional - gracefully handle missing credentials)
 # ---------------------------------------------------------------------
-gmail_tools = create_gmail_tools(
-    token_file="token.json",
-    client_secrets_file="credentials.json"
-)
+try:
+    gmail_tools = create_gmail_tools(
+        token_file="token.json",
+        client_secrets_file="credentials.json"
+    )
 
-# Filter out any sending tools
-gmail_tools_filtered = [
-    t for t in gmail_tools if "send" not in t.name.lower()
-]
+    # Filter out any sending tools
+    gmail_tools_filtered = [
+        t for t in gmail_tools if "send" not in t.name.lower()
+    ]
 
-gmail_draft_tool = next(t for t in gmail_tools if t.name == "create_gmail_draft")
-gmail_get_msg_tool = next(t for t in gmail_tools if t.name == "get_gmail_message")
-gmail_search_tool = next(t for t in gmail_tools if t.name == "search_gmail")
+    gmail_draft_tool = next(t for t in gmail_tools if t.name == "create_gmail_draft")
+    gmail_get_msg_tool = next(t for t in gmail_tools if t.name == "get_gmail_message")
+    gmail_search_tool = next(t for t in gmail_tools if t.name == "search_gmail")
+    
+    print("[INFO] Gmail tools initialized successfully")
+    GMAIL_AVAILABLE = True
+    
+except (FileNotFoundError, Exception) as e:
+    print(f"[WARNING] Gmail tools not available: {e}")
+    print("[INFO] Agent will run without Gmail functionality")
+    
+    # Create dummy tools that return helpful error messages
+    gmail_draft_tool = None
+    gmail_get_msg_tool = None
+    gmail_search_tool = None
+    gmail_tools_filtered = []
+    GMAIL_AVAILABLE = False
 
 
 # print("[DEBUG] Draft tool selected:", gmail_draft_tool.name)
@@ -728,7 +743,7 @@ async def draft_email_async(to: str, subject: str, body: str):
     This function is an async wrapper around the synchronous
     `gmail_draft_tool.run()` call. Because GmailToolkit tools execute using
     the Google API client (which is blocking), this coroutine uses
-    `asyncio.to_thread()` to keep the agent’s event loop responsive while
+    `asyncio.to_thread()` to keep the agent's event loop responsive while
     still leveraging the synchronous Gmail API bindings.
 
     Relationship to the Gmail Toolkit
@@ -744,7 +759,7 @@ async def draft_email_async(to: str, subject: str, body: str):
     ----------
     to : str
         The destination email address for the draft. This function wraps
-        the address in a one-element list because the GmailToolkit’s
+        the address in a one-element list because the GmailToolkit's
         draft tool expects:  {"to": ["recipient@domain.com"], ...}.
 
     subject : str
@@ -782,6 +797,9 @@ async def draft_email_async(to: str, subject: str, body: str):
         )
     {'id': 'draft_12345', 'message': {...}}
     """
+    # Check if Gmail is available
+    if not GMAIL_AVAILABLE or gmail_draft_tool is None:
+        return "Error: Gmail functionality is not available. This requires Gmail credentials (credentials.json and token.json) which are only available when running locally."
 
     print(f"[DEBUG] Starting draft_email_async: to={to}, subject={subject}")
 
@@ -882,6 +900,10 @@ def read_emails_for_agent(query: str = "", max_results: int = 5) -> dict:
     dict
         {"messages": [{"id": "...", "snippet": "...", "text": "..."}]}
     """
+    # Check if Gmail is available
+    if not GMAIL_AVAILABLE or gmail_search_tool is None:
+        return {"error": "Gmail functionality is not available. This requires Gmail credentials (credentials.json and token.json) which are only available when running locally."}
+    
     print(f"[DEBUG] read_emails_for_agent called: query='{query}', max={max_results}")
 
     # 1️⃣  Perform the Gmail search
