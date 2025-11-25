@@ -1,0 +1,45 @@
+name: Run Antigravity Agent (on-demand)
+
+# Allows you to start the workflow manually from the UI or the mobile app
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: "User prompt to feed the agent"
+        required: true
+        default: "Hello, can you help me search my emails?"
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run the agent with prompt
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          USER_PROMPT: ${{ github.event.inputs.prompt }}
+        run: |
+          python run_once.py "$USER_PROMPT"
+
+      - name: Upload output as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-output
+          path: agent_output.txt
+          retention-days: 7
