@@ -7,7 +7,7 @@ on:
       prompt:
         description: "User prompt to feed the agent"
         required: true
-        default: "Hello, can you help me with job applications?"
+        default: " "
 
 jobs:
   run-agent:

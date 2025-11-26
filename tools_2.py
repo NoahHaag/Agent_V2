@@ -431,7 +431,7 @@ def add_cold_email(
     notes: str = ""
 ):
     """
-    Add a new cold email to the tracker.
+    Add a new cold email to the tracker, or update existing one if recipient_email already exists.
     
     Args:
         recipient_name (str): Name of the person you emailed
@@ -449,27 +449,80 @@ def add_cold_email(
         date_sent = date.today().isoformat()
     
     data = _load_cold_emails()
-    email_id = str(uuid.uuid4())[:8]
     
-    cold_email = {
-        "id": email_id,
-        "recipient_name": recipient_name,
-        "recipient_email": recipient_email,
-        "institution": institution,
-        "subject": subject,
-        "purpose": purpose,
-        "date_sent": date_sent,
-        "status": "sent",
-        "response_date": None,
-        "follow_up_dates": [],
-        "notes": notes,
-        "last_updated": datetime.now().isoformat()
-    }
+    # Check if an email to this recipient already exists
+    existing_email = None
+    for email in data["emails"]:
+        if email["recipient_email"].lower() == recipient_email.lower():
+            existing_email = email
+            break
     
-    data["emails"].append(cold_email)
-    _save_cold_emails(data)
+    if existing_email:
+        # Update existing entry
+        updated_fields = []
+        
+        # Update recipient_name if provided and different
+        if recipient_name and recipient_name != existing_email["recipient_name"]:
+            existing_email["recipient_name"] = recipient_name
+            updated_fields.append("name")
+        
+        # Update institution if provided and different
+        if institution and institution != existing_email["institution"]:
+            existing_email["institution"] = institution
+            updated_fields.append("institution")
+        
+        # Update subject if provided
+        if subject and subject != existing_email["subject"]:
+            existing_email["subject"] = subject
+            updated_fields.append("subject")
+        
+        # Update purpose if provided
+        if purpose and purpose != existing_email["purpose"]:
+            existing_email["purpose"] = purpose
+            updated_fields.append("purpose")
+        
+        # Add to follow-up dates if this is a new send
+        if date_sent not in existing_email.get("follow_up_dates", []):
+            existing_email["follow_up_dates"].append(date_sent)
+            updated_fields.append("follow-up date")
+        
+        # Append notes if provided
+        if notes:
+            if existing_email["notes"]:
+                existing_email["notes"] += f"\n[{datetime.now().strftime('%Y-%m-%d')}] {notes}"
+            else:
+                existing_email["notes"] = notes
+            updated_fields.append("notes")
+        
+        existing_email["last_updated"] = datetime.now().isoformat()
+        _save_cold_emails(data)
+        
+        fields_str = ", ".join(updated_fields) if updated_fields else "no new information"
+        return f"🔄 Updated existing email!\n\nID: {existing_email['id']}\nRecipient: {existing_email['recipient_name']} ({recipient_email})\nInstitution: {existing_email['institution'] or 'N/A'}\nUpdated: {fields_str}"
     
-    return f"✅ Cold email tracked!\n\nID: {email_id}\nRecipient: {recipient_name} ({recipient_email})\nInstitution: {institution or 'N/A'}\nDate: {date_sent}"
+    else:
+        # Create new entry
+        email_id = str(uuid.uuid4())[:8]
+        
+        cold_email = {
+            "id": email_id,
+            "recipient_name": recipient_name,
+            "recipient_email": recipient_email,
+            "institution": institution,
+            "subject": subject,
+            "purpose": purpose,
+            "date_sent": date_sent,
+            "status": "sent",
+            "response_date": None,
+            "follow_up_dates": [],
+            "notes": notes,
+            "last_updated": datetime.now().isoformat()
+        }
+        
+        data["emails"].append(cold_email)
+        _save_cold_emails(data)
+        
+        return f"✅ Cold email tracked!\n\nID: {email_id}\nRecipient: {recipient_name} ({recipient_email})\nInstitution: {institution or 'N/A'}\nDate: {date_sent}"
 
 
 def update_cold_email(
