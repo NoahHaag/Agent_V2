@@ -30,10 +30,18 @@ retry_config=types.HttpRetryOptions(
 # Detect if running in GitHub Actions
 IS_GHA = os.getenv("GITHUB_ACTIONS") == "true"
 
+# Common configuration for Gemini models
+gemini_kwargs = {"retry_options": retry_config}
+api_key = os.getenv("GOOGLE_API_KEY")
+if api_key:
+    gemini_kwargs["api_key"] = api_key
+elif IS_GHA:
+    print("[ERROR] GOOGLE_API_KEY not found in environment variables!")
+
 if IS_GHA:
     print("[INFO] Running in GitHub Actions - Switching to Gemini")
     # Use Gemini for remote execution
-    llm = Gemini(model="gemini-2.5-flash-lite", retry_options=retry_config)
+    llm = Gemini(model="gemini-2.5-flash-lite", **gemini_kwargs)
 else:
     print("[INFO] Running Locally - Using Ollama")
     # Use Ollama for local execution
@@ -59,7 +67,7 @@ async def auto_save_session_to_memory_callback(callback_context):
 
 google_searching_agent = LlmAgent(
     name="google_search_agent",
-    model=Gemini(model="gemini-2.5-flash-lite", retry_options=retry_config),
+    model=Gemini(model="gemini-2.5-flash-lite", **gemini_kwargs),
     description="Searches google to help answer questions.",
     instruction=f"""
     You are a specialized sub-agent for real-time information gathering. 
@@ -81,7 +89,7 @@ google_searching_agent = LlmAgent(
 
 gmail_search_agent = LlmAgent(
     name = "gmail_search_agent",
-    model=Gemini(model="gemini-2.5-flash-lite", retry_options=retry_config),
+    model=Gemini(model="gemini-2.5-flash-lite", **gemini_kwargs),
     description="searches gmail to answer questions about emails the user has received.",
     instruction="""
     You are a dedicated Gmail sub-agent. Your ONLY job is to convert natural language into Gmail search queries.
