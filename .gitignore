@@ -7,9 +7,9 @@ __pycache__/
 agent_scratchpad.txt
 documents/
 cover_letters/
-job_applications.json
+# job_applications.json - Tracked for Auto-Sync
 my_agent_data.db
 chroma_db_research_papers_test/
 .pytest_cache/
 agent_output.txt
-cold_emails.json
+# cold_emails.json - Tracked for Auto-Sync
