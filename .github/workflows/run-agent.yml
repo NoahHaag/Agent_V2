@@ -1,4 +1,4 @@
-name: Run Antigravity Agent (on-demand)
+name: Run Job Assistant
 
 # Allows you to start the workflow manually from the UI or the mobile app
 on:
@@ -7,7 +7,7 @@ on:
       prompt:
         description: "User prompt to feed the agent"
         required: true
-        default: "Hello, can you help me search my emails?"
+        default: "Hello, can you help me with job applications?"
 
 jobs:
   run-agent:
