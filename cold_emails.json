@@ -63,6 +63,20 @@
       ],
       "notes": "",
       "last_updated": "2025-11-26T15:26:07.904228"
+    },
+    {
+      "id": "b604be5e",
+      "recipient_name": "Dr Liu",
+      "recipient_email": "aixueer4ever@gmail.com",
+      "institution": "NVIDIA",
+      "subject": "",
+      "purpose": "",
+      "date_sent": "2025-11-26",
+      "status": "sent",
+      "response_date": null,
+      "follow_up_dates": [],
+      "notes": "Awaiting response",
+      "last_updated": "2025-11-26T23:43:28.561952"
     }
   ]
 }
