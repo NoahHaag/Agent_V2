@@ -35,7 +35,7 @@ gemini_kwargs = {"retry_options": retry_config}
 api_key = os.getenv("GOOGLE_API_KEY")
 
 if api_key:
-    api_key = api_key.strip()
+    api_key = api_key.strip().strip('"').strip("'")
     print(f"[DEBUG] GOOGLE_API_KEY found. Length: {len(api_key)}")
     print(f"[DEBUG] Key start: {repr(api_key[:4])}, Key end: {repr(api_key[-4:])}")
     gemini_kwargs["api_key"] = api_key
