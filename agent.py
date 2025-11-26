@@ -33,10 +33,13 @@ IS_GHA = os.getenv("GITHUB_ACTIONS") == "true"
 # Common configuration for Gemini models
 gemini_kwargs = {"retry_options": retry_config}
 api_key = os.getenv("GOOGLE_API_KEY")
+
 if api_key:
+    print(f"[DEBUG] GOOGLE_API_KEY found. Length: {len(api_key)}")
     gemini_kwargs["api_key"] = api_key
 elif IS_GHA:
     print("[ERROR] GOOGLE_API_KEY not found in environment variables!")
+    print("[DEBUG] Available env vars: ", [k for k in os.environ.keys() if "GOOGLE" in k])
 
 if IS_GHA:
     print("[INFO] Running in GitHub Actions - Switching to Gemini")
