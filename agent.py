@@ -136,7 +136,8 @@ gmail_search_agent = LlmAgent(
     Gmail Query: "is:unread label:inbox"
     Next Action: call gmail_read_tool_for_agent with query="is:unread label:inbox", max_results=1
     """,
-    tools=[gmail_read_tool_for_agent]
+    tools=[gmail_read_tool_for_agent],
+    output_key="emails"
 )
 
 # ---------------------------------------------------------
@@ -180,6 +181,12 @@ root_agent = LlmAgent(
     """,
     instruction="""
     You are a user-facing career assistant. You help the user with job searches, résumés, CV review, interview preparation, professional communication, and outreach to relevant researchers.
+
+    **CRITICAL RULE: ALWAYS PROVIDE A FINAL ANSWER**
+    - After calling ANY tool or sub-agent, you MUST analyze the results and provide a text response to the user
+    - NEVER end your turn without providing text output
+    - If a tool returns data, read it and summarize/answer the user's question
+    - Empty responses are NOT allowed
 
     CRITICAL: YOU HAVE FULL GMAIL ACCESS VIA gmail_search_agent SUB-AGENT
     - Never say you can't access emails
@@ -249,13 +256,24 @@ root_agent = LlmAgent(
     - summarize an email
     - show recent messages
     - check unread messages
+    - analyze email content (job titles, etc.)
 
     → Always route this via gmail_search_agent.
+    
+    **CRITICAL: AFTER gmail_search_agent RETURNS DATA**
+    - The gmail_search_agent returns a dictionary with a "messages" list
+    - Each message has an "id", "snippet", and "text" field
+    - For job-related queries, START with the "snippet" field (it's shorter and contains key info)
+    - The snippet usually contains the job title and company name
+    - Only use the full "text" field if you need more details
+    - You MUST analyze the data and provide a response
+    - NEVER say "I can't access email content" - you have it in the tool response
+    - Example: If user asks "what jobs are in these emails?", read the "snippet" field from each message and list the job titles
 
     Convert natural-language requests to Gmail queries:
-    - “summarize my latest email from DAIR.AI”  
+    - "summarize my latest email from DAIR.AI"  
       → query="from:dair.ai", sorted newest first
-    - “show unread messages from Jarret Byrnes”  
+    - "show unread messages from Jarret Byrnes"  
       → query="from:jarret.byrnes@umb.edu is:unread"
 
     --------------------------------------------------------------------
@@ -389,7 +407,11 @@ root_agent = LlmAgent(
         cold_email_update_tool,
         cold_email_query_tool
     ],
-    generate_content_config=types.GenerateContentConfig(temperature=0.01),
+    generate_content_config=types.GenerateContentConfig(
+    temperature=0.01,
+    max_output_tokens=2048,
+    response_modalities=["TEXT"]
+),
     after_agent_callback= auto_save_session_to_memory_callback,
 )
 
@@ -475,14 +497,34 @@ async def main():
         )
 
         final_answer = None
-        async for event in runner.run_async(
-                user_id=user_id,
-                session_id=session_id,
-                new_message=user_message
-        ):
-            if event.is_final_response():
-                if event.content.parts and event.content.parts[0].text:
-                    final_answer = event.content.parts[0].text
+        event_count = 0
+        try:
+            async for event in runner.run_async(
+                    user_id=user_id,
+                    session_id=session_id,
+                    new_message=user_message
+            ):
+                event_count += 1
+                print(f"[DEBUG] Event {event_count}: is_final={event.is_final_response()}, has_content={hasattr(event, 'content')}")
+                if event.is_final_response():
+                    print(f"[DEBUG] Final response detected. Parts count: {len(event.content.parts) if event.content.parts else 0}")
+                    if event.content.parts and len(event.content.parts) == 0:
+                        print(f"[DEBUG] WARNING: Final response has zero parts!")
+                        print(f"[DEBUG] Event content: {event.content}")
+                    # Collect all text parts from the response
+                    text_parts = []
+                    if event.content.parts:
+                        for i, part in enumerate(event.content.parts):
+                            print(f"[DEBUG] Part {i}: has_text={hasattr(part, 'text')}, text_len={len(part.text) if hasattr(part, 'text') and part.text else 0}")
+                            if hasattr(part, 'text') and part.text:
+                                text_parts.append(part.text)
+                    if text_parts:
+                        final_answer = '\n'.join(text_parts)
+                        print(f"[DEBUG] Final answer length: {len(final_answer)}")
+        except Exception as e:
+            print(f"[ERROR] Exception during event processing: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
 
         print("\n🤖 Agent:\n")
         print(final_answer or "(no final answer found)")
