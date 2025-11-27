@@ -1,4 +1,46 @@
 {
   "applications": [
+    {
+      "id": "2f9d3428",
+      "company": "Northeastern University",
+      "position": "ML Performance Engineer, Computational Biology",
+      "status": "applied",
+      "date_applied": "2023-11-03",
+      "application_deadline": "",
+      "job_description": "",
+      "cover_letter_generated": false,
+      "next_action": "",
+      "notes": "Application received, no further updates.",
+      "contacts": [],
+      "last_updated": "2025-11-27T12:16:02.425360"
+    },
+    {
+      "id": "2109bddc",
+      "company": "Lila Sciences",
+      "position": "Machine Learning Engineer, Biomolecule Design",
+      "status": "rejected",
+      "date_applied": "2023-11-12",
+      "application_deadline": "",
+      "job_description": "",
+      "cover_letter_generated": false,
+      "next_action": "",
+      "notes": "Heard back on Nov 22 that they will not be hiring me.",
+      "contacts": [],
+      "last_updated": "2025-11-27T12:21:09.253562"
+    },
+    {
+      "id": "916ad21c",
+      "company": "MORSE Corp",
+      "position": "Data Scientist- Bayesian Statistics",
+      "status": "rejected",
+      "date_applied": "2023-11-03",
+      "application_deadline": "",
+      "job_description": "",
+      "cover_letter_generated": false,
+      "next_action": "",
+      "notes": "Rejected on Nov 6.",
+      "contacts": [],
+      "last_updated": "2025-11-27T12:22:49.832984"
+    }
   ]
 }
