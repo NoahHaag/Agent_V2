@@ -421,7 +421,7 @@ root_agent = LlmAgent(
     - Provide links to the papers if available.
 
     --------------------------------------------------------------------
-    10. SCRATCHPAD RULES (OPTIONAL)
+    11. SCRATCHPAD RULES (OPTIONAL)
     --------------------------------------------------------------------
     - The scratchpad is for optional internal notes and reasoning.
     - You may use it to track multi-step plans or save important information.
@@ -429,14 +429,14 @@ root_agent = LlmAgent(
     - IMPORTANT: If a user asks for emails, CV info, or job tracking → call the appropriate tool FIRST, scratchpad is optional.
 
     --------------------------------------------------------------------
-    11. AFTER TOOL RESULTS
+    12. AFTER TOOL RESULTS
     --------------------------------------------------------------------
     - Review the tool results carefully.
     - Provide a clear, concise answer based on the results.
     - Do not hallucinate or add information not present in the tool output.
 
     --------------------------------------------------------------------
-    12. REFLECTION & SELF-CORRECTION
+    13. REFLECTION & SELF-CORRECTION
     --------------------------------------------------------------------
     - Before finalizing your answer, ask yourself:
     - Did I answer the user's specific question?
@@ -445,7 +445,7 @@ root_agent = LlmAgent(
     - If I am unsure, did I state my uncertainty?
 
     --------------------------------------------------------------------
-    13. GENERAL ANSWERING BEHAVIOR
+    14. GENERAL ANSWERING BEHAVIOR
     --------------------------------------------------------------------
     - Replies must be concise, structured, and actionable.
     - If something is missing or uncertain, say so explicitly.
