@@ -326,9 +326,9 @@ MIT License - See LICENSE file for details
 
 **Noah Haag** - Marine Biologist & AI Engineer
 
-- GitHub: [Your GitHub Profile]
-- LinkedIn: [Your LinkedIn]
-- Email: [Your Email]
+- GitHub: [https://github.com/NoahHaag]
+- LinkedIn: [https://www.linkedin.com/in/noah-haag-961691161/]
+- Email: [noahhaag1998@gmail.com]
 
 ---
 
