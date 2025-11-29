@@ -147,6 +147,62 @@
       "follow_up_dates": [],
       "notes": "Responded with a no, there is no room in her lab\n[2025-11-28] Response: No",
       "last_updated": "2025-11-28T20:32:51.302914"
+    },
+    {
+      "id": "8a727abf",
+      "recipient_name": "Dr. Tanya Roberts",
+      "recipient_email": "tanya.l.rogers@gmail.com",
+      "institution": "NOAA",
+      "subject": "",
+      "purpose": "",
+      "date_sent": "2023-11-10",
+      "status": "responded",
+      "response_date": "2023-11-11",
+      "follow_up_dates": [],
+      "notes": "Referred by Professor Tarik. Successful Zoom meeting on 11/11.\n[2025-11-28] Meeting was informational, not job-seeking.",
+      "last_updated": "2025-11-28T20:57:57.738927"
+    },
+    {
+      "id": "4f3f0e36",
+      "recipient_name": "Dr. Tarik Gouhier",
+      "recipient_email": "t.gouhier@northeastern.edu",
+      "institution": "Northeastern University",
+      "subject": "",
+      "purpose": "",
+      "date_sent": "2023-10-14",
+      "status": "responded",
+      "response_date": "2023-11-06",
+      "follow_up_dates": [],
+      "notes": "Initial contact for many meetings. Informational Zoom meeting on 11/6.\n[2025-11-28] Initial contact for many meetings. Informational Zoom meeting on 11/6. Also has email tarik.gouhier@gmail.com",
+      "last_updated": "2025-11-28T21:05:51.631702"
+    },
+    {
+      "id": "bca31cb0",
+      "recipient_name": "Dr. Johnathan Grabowski",
+      "recipient_email": "j.grabowski@northeastern.edu",
+      "institution": "Northeastern University",
+      "subject": "",
+      "purpose": "",
+      "date_sent": "2023-11-06",
+      "status": "responded",
+      "response_date": "2023-11-13",
+      "follow_up_dates": [],
+      "notes": "Informational phone call on 11/13.",
+      "last_updated": "2025-11-28T21:05:53.903219"
+    },
+    {
+      "id": "a180a698",
+      "recipient_name": "Dr. Randall Hughes",
+      "recipient_email": "ann.hughes@northeastern.edu",
+      "institution": "Northeastern University",
+      "subject": "",
+      "purpose": "",
+      "date_sent": "2023-11-07",
+      "status": "responded",
+      "response_date": "2023-11-24",
+      "follow_up_dates": [],
+      "notes": "Informational Zoom call on 11/24.",
+      "last_updated": "2025-11-28T21:05:55.495495"
     }
   ]
 }
