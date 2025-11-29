@@ -16,7 +16,9 @@ from tools_2 import (read_document, read_scratchpad_tool, write_scratchpad_tool,
                               gmail_draft_tool_for_agent, gmail_read_tool_for_agent,
                               job_tracker_add_tool, job_tracker_update_tool,
                               job_tracker_query_tool, cover_letter_generator_tool,
-                              cold_email_add_tool, cold_email_update_tool, cold_email_query_tool)
+                              cold_email_add_tool, cold_email_update_tool, cold_email_query_tool,
+                              network_graph_tool, job_search_tool, job_opportunities_query_tool,
+                              serpapi_usage_tool, job_opportunity_delete_tool)
 
 import os
 
@@ -344,22 +346,72 @@ root_agent = LlmAgent(
       - institution: "MIT" (inferred or explicit)
     - Do NOT just use the email address as the name.
     - If the name is missing, ask the user or infer it from the email context if obvious.
-    
+    - **Check for Referrals**: If the user mentions "referred by X" or "friend of Y", extract:
+      - referred_by: "X"
+      - connection_strength: Infer 1-5 (1=weak, 5=strong) if possible, default to 1.
+
     **CRITICAL: After adding cold emails, ALWAYS call cold_email_query_tool to show the tracker.**
     - DO NOT manually format or summarize the cold email tracker yourself.
     - ALWAYS use cold_email_query_tool() to display the current state.
     - This ensures proper formatting and prevents errors.
 
     **Updating Cold Emails:**
-    **Updating Cold Emails:**
     - User says "Dr. Davies responded" → call cold_email_update_tool(recipient_name="Dr. Davies", status="responded", response_date=today)
     - User says "Dr. X said no" → call cold_email_update_tool(recipient_name="Dr. X", status="responded", notes="Response: No")
     - User says "I sent a follow up to Y" → call cold_email_update_tool(recipient_name="Y", follow_up_sent=True)
     - User says "Add a note to Z" → call cold_email_update_tool(recipient_name="Z", notes="...")
+    - User says "I was referred by A" → call cold_email_update_tool(recipient_name="...", referred_by="A")
 
 
     --------------------------------------------------------------------
-    8. SCRATCHPAD RULES (OPTIONAL)
+    8. NETWORK GRAPH VISUALIZATION
+    --------------------------------------------------------------------
+    - When the user asks to see their network, connections, or graph:
+    - Call network_graph_tool()
+    - Return the Mermaid.js code in a markdown block:
+        ```mermaid
+        [graph code here]
+        ```
+    - Explain the graph briefly (e.g., "Here is your network graph. Green nodes have responded.")
+
+    --------------------------------------------------------------------
+    9. JOB SEARCH & MONITORING
+    --------------------------------------------------------------------
+    When the user asks to search for jobs or monitor opportunities:
+
+    **Searching for Jobs:**
+    - Use job_search_tool(query, location, date_posted, max_results)
+    - Example: job_search_tool(query="Marine Scientist", location="Florida", date_posted="week")
+    - Date options: "today", "3days", "week", "month"
+    - Results are automatically saved to job_opportunities.json (deduplication built-in)
+    - Tool will warn if approaching SerpAPI usage limit (100/month)
+    - The search uses SerpAPI which aggregates from LinkedIn, Indeed, Glassdoor, and more
+
+    **Viewing Saved Opportunities:**
+    - Use job_opportunities_query_tool() to see all discovered job opportunities
+    - Filter by: days_back, company, title, sort_by
+    - Examples:
+      - job_opportunities_query_tool(days_back=7) - jobs from last week
+      - job_opportunities_query_tool(title="Marine") - filter by title
+      - job_opportunities_query_tool(company="NOAA") - filter by company
+
+    **Checking API Usage:**
+    - Use serpapi_usage_tool() to check remaining searches
+    - Displays: searches used, remaining, recent search history
+    - Warns at 80% usage (80/100 searches)
+    - Usage resets on the 1st of each month
+
+    **Managing Opportunities:**
+    - Use job_opportunity_delete_tool(job_id) to remove saved opportunities
+    - When user applies to a saved opportunity, suggest moving it to job tracker
+
+    **Integration with Job Tracker:**
+    - Job opportunities = discovered jobs not yet applied to
+    - Job applications = jobs you've actually applied to (tracked in job_applications.json)
+    - When user says "apply to [job]", add to job tracker and optionally mark opportunity as applied
+
+    --------------------------------------------------------------------
+    10. SCRATCHPAD RULES (OPTIONAL)
     --------------------------------------------------------------------
     - The scratchpad is for optional internal notes and reasoning.
     - You may use it to track multi-step plans or save important information.
@@ -367,23 +419,23 @@ root_agent = LlmAgent(
     - IMPORTANT: If a user asks for emails, CV info, or job tracking → call the appropriate tool FIRST, scratchpad is optional.
 
     --------------------------------------------------------------------
-    9. AFTER TOOL RESULTS
+    11. AFTER TOOL RESULTS
     --------------------------------------------------------------------
     - Review the tool results carefully.
     - Provide a clear, concise answer based on the results.
     - Do not hallucinate or add information not present in the tool output.
 
     --------------------------------------------------------------------
-    10. REFLECTION & SELF-CORRECTION
+    12. REFLECTION & SELF-CORRECTION
     --------------------------------------------------------------------
-    Before finalizing your answer, ask yourself:
+    - Before finalizing your answer, ask yourself:
     - Did I answer the user's specific question?
     - Did I use the correct tool?
     - Is my answer based on facts (CV, Google Search, Emails) or did I hallucinate?
     - If I am unsure, did I state my uncertainty?
 
     --------------------------------------------------------------------
-    11. GENERAL ANSWERING BEHAVIOR
+    13. GENERAL ANSWERING BEHAVIOR
     --------------------------------------------------------------------
     - Replies must be concise, structured, and actionable.
     - If something is missing or uncertain, say so explicitly.
@@ -409,7 +461,12 @@ root_agent = LlmAgent(
         cover_letter_generator_tool,
         cold_email_add_tool,
         cold_email_update_tool,
-        cold_email_query_tool
+        cold_email_query_tool,
+        network_graph_tool,
+        job_search_tool,
+        job_opportunities_query_tool,
+        serpapi_usage_tool,
+        job_opportunity_delete_tool
     ],
     generate_content_config=types.GenerateContentConfig(
     temperature=0.1,

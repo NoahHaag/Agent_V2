@@ -1,0 +1,47 @@
+name: Job Monitor
+
+on:
+  # Run Monday-Friday at 9 AM EST (14:00 UTC)
+  schedule:
+    - cron: '0 14 * * 1-5'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  search-jobs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests python-dotenv
+    
+    - name: Run job search
+      env:
+        SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+      run: |
+        python run_job_search.py
+      continue-on-error: true
+    
+    - name: Commit new jobs
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add job_opportunities.json serpapi_usage.json
+        git diff --staged --quiet || git commit -m "🔍 Auto: New job opportunities discovered [$(date +'%Y-%m-%d')]"
+    
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}

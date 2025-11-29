@@ -7,6 +7,7 @@ import uuid
 from datetime import datetime, date
 
 import docx
+import requests
 from PyPDF2 import PdfReader
 from chromadb import Settings
 from google.adk.tools import FunctionTool
@@ -25,6 +26,8 @@ DOCUMENT_FOLDER = "documents"
 SCRATCHPAD_FILE = "agent_scratchpad.txt"
 JOB_APPLICATIONS_FILE = "job_applications.json"
 COVER_LETTERS_FOLDER = "cover_letters"
+JOB_OPPORTUNITIES_FILE = "job_opportunities.json"
+SERPAPI_USAGE_FILE = "serpapi_usage.json"
 
 
 # -----------------------------
@@ -428,7 +431,9 @@ def add_cold_email(
     subject: str = "",
     purpose: str = "",
     date_sent: str = None,
-    notes: str = ""
+    notes: str = "",
+    referred_by: str = "",
+    connection_strength: int = 1
 ):
     """
     Add a new cold email to the tracker, or update existing one if recipient_email already exists.
@@ -441,6 +446,8 @@ def add_cold_email(
         purpose (str, optional): Purpose (e.g., "PhD opportunity")
         date_sent (str, optional): Date sent (YYYY-MM-DD). Defaults to today.
         notes (str, optional): Additional notes
+        referred_by (str, optional): Name or ID of person who referred you
+        connection_strength (int, optional): 1-5 rating of relationship strength (default: 1)
     
     Returns:
         str: Confirmation message with email ID
@@ -494,6 +501,16 @@ def add_cold_email(
                 existing_email["notes"] = notes
             updated_fields.append("notes")
         
+        # Update referred_by if provided
+        if referred_by and referred_by != existing_email.get("referred_by", ""):
+            existing_email["referred_by"] = referred_by
+            updated_fields.append("referred_by")
+
+        # Update connection_strength if provided
+        if connection_strength != existing_email.get("connection_strength", 1):
+            existing_email["connection_strength"] = connection_strength
+            updated_fields.append("connection_strength")
+        
         existing_email["last_updated"] = datetime.now().isoformat()
         _save_cold_emails(data)
         
@@ -516,7 +533,9 @@ def add_cold_email(
             "response_date": None,
             "follow_up_dates": [],
             "notes": notes,
-            "last_updated": datetime.now().isoformat()
+            "last_updated": datetime.now().isoformat(),
+            "referred_by": referred_by,
+            "connection_strength": connection_strength
         }
         
         data["emails"].append(cold_email)
@@ -532,7 +551,9 @@ def update_cold_email(
     status: str = None,
     response_date: str = None,
     follow_up_sent: bool = False,
-    notes: str = None
+    notes: str = None,
+    referred_by: str = None,
+    connection_strength: int = None
 ):
     """
     Update an existing cold email record.
@@ -544,7 +565,10 @@ def update_cold_email(
         status (str, optional): New status (sent, responded, no_response, follow_up_sent)
         response_date (str, optional): Date they responded (YYYY-MM-DD)
         follow_up_sent (bool): If True, adds today to follow_up_dates
+        follow_up_sent (bool): If True, adds today to follow_up_dates
         notes (str, optional): Additional notes to append
+        referred_by (str, optional): Update referrer
+        connection_strength (int, optional): Update connection strength (1-5)
     
     Returns:
         str: Confirmation message
@@ -600,6 +624,12 @@ def update_cold_email(
             email_to_update["notes"] += f"\n[{datetime.now().strftime('%Y-%m-%d')}] {notes}"
         else:
             email_to_update["notes"] = notes
+    
+    if referred_by is not None:
+        email_to_update["referred_by"] = referred_by
+    
+    if connection_strength is not None:
+        email_to_update["connection_strength"] = connection_strength
     
     email_to_update["last_updated"] = datetime.now().isoformat()
     _save_cold_emails(data)
@@ -666,6 +696,504 @@ def query_cold_emails(
     return "\n\n".join(result)
 
 
+def generate_network_graph():
+    """
+    Generate a Mermaid.js graph visualization of your professional network.
+    
+    This tool reads the cold email tracker and visualizes relationships between:
+    - You (Central Node)
+    - Contacts (People you've emailed)
+    - Institutions (Where they work)
+    - Referrals (Who introduced whom)
+    
+    Returns:
+        str: Mermaid.js graph syntax to be rendered
+    """
+    data = _load_cold_emails()
+    emails = data["emails"]
+    
+    # Start Mermaid graph
+    graph = ["graph TD"]
+    
+    # Style definitions
+    graph.append("    %% Styles")
+    graph.append("    classDef person fill:#e1f5fe,stroke:#01579b,stroke-width:2px,rx:10,ry:10;")
+    graph.append("    classDef institution fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,rx:5,ry:5;")
+    graph.append("    classDef responded fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px;")
+    graph.append("    classDef no_response fill:#ffcdd2,stroke:#c62828,stroke-width:1px;")
+    
+    # Nodes and Edges
+    institutions = set()
+    
+    # Central Node (User)
+    graph.append("    User(You) --> Network")
+    graph.append("    style User fill:#fff9c4,stroke:#fbc02d,stroke-width:4px")
+    
+    for email in emails:
+        # Sanitize IDs for Mermaid (remove special chars)
+        p_id = f"P_{email['id']}"
+        p_name = email['recipient_name'].replace("(", "").replace(")", "").replace("[", "").replace("]", "")
+        p_inst = email['institution'].strip() if email['institution'] else "Unknown"
+        i_id = f"I_{abs(hash(p_inst))}"
+        
+        # Determine style based on status
+        style_class = "person"
+        if email.get("response_date"):
+            style_class += ",responded"
+        else:
+            style_class += ",no_response"
+            
+        # Add Person Node
+        graph.append(f"    {p_id}({p_name}):::{style_class}")
+        
+        # Add Institution Node and Edge
+        if p_inst:
+            if p_inst not in institutions:
+                graph.append(f"    {i_id}[{p_inst}]:::institution")
+                institutions.add(p_inst)
+            graph.append(f"    {p_id} -- Works at --> {i_id}")
+            
+        # Add Referral Edge
+        referrer = email.get("referred_by")
+        if referrer:
+            # Try to find referrer in existing contacts
+            referrer_id = None
+            for e in emails:
+                if e['recipient_name'].lower() == referrer.lower() or e['id'] == referrer:
+                    referrer_id = f"P_{e['id']}"
+                    break
+            
+            if referrer_id:
+                graph.append(f"    {referrer_id} -- Referred --> {p_id}")
+            else:
+                # External referrer
+                r_id = f"R_{abs(hash(referrer))}"
+                graph.append(f"    {r_id}({referrer})")
+                graph.append(f"    {r_id} -- Referred --> {p_id}")
+
+    return "\n".join(graph)
+
+
+# ---------------------------------------------------------------------
+# Job Opportunities Scraper - SerpAPI with usage tracking
+# ---------------------------------------------------------------------
+
+def _load_job_opportunities():
+    """Load job opportunities from JSON file. Create file if it doesn't exist."""
+    if not os.path.exists(JOB_OPPORTUNITIES_FILE):
+        initial_data = {"opportunities": []}
+        with open(JOB_OPPORTUNITIES_FILE, "w", encoding="utf-8") as f:
+            json.dump(initial_data, f, indent=2)
+        return initial_data
+    
+    try:
+        with open(JOB_OPPORTUNITIES_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        print("[WARNING] Corrupted job_opportunities.json, creating backup.")
+        if os.path.exists(JOB_OPPORTUNITIES_FILE):
+            backup_name = f"job_opportunities_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            os.rename(JOB_OPPORTUNITIES_FILE, backup_name)
+        return {"opportunities": []}
+
+
+def _save_job_opportunities(data):
+    """Save job opportunities to JSON file."""
+    with open(JOB_OPPORTUNITIES_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def _load_serpapi_usage():
+    """Load SerpAPI usage tracker."""
+    if not os.path.exists(SERPAPI_USAGE_FILE):
+        initial_data = {"monthly_limit": 200, "searches": []}
+        with open(SERPAPI_USAGE_FILE, "w", encoding="utf-8") as f:
+            json.dump(initial_data, f, indent=2)
+        return initial_data
+    
+    try:
+        with open(SERPAPI_USAGE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        print("[WARNING] Corrupted serpapi_usage.json, resetting.")
+        return {"monthly_limit": 200, "searches": []}
+
+
+def _save_serpapi_usage(data):
+    """Save SerpAPI usage tracker."""
+    with open(SERPAPI_USAGE_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
+def _count_searches_this_month(usage_data):
+    """Count searches in current month."""
+    current_month = datetime.now().strftime("%Y-%m")
+    return sum(1 for s in usage_data["searches"] if s["date"].startswith(current_month))
+
+
+def _log_serpapi_search(query, results_count):
+    """Log a SerpAPI search."""
+    usage_data = _load_serpapi_usage()
+    usage_data["searches"].append({
+        "date": datetime.now().isoformat(),
+        "query": query,
+        "results": results_count
+    })
+    _save_serpapi_usage(usage_data)
+
+
+def _is_duplicate_job(job, existing_jobs):
+    """Check if a job is a duplicate based on company, title, and location."""
+    for existing in existing_jobs:
+        if (existing.get("company", "").lower() == job.get("company", "").lower() and
+            existing.get("title", "").lower() == job.get("title", "").lower() and
+            existing.get("location", "").lower() == job.get("location", "").lower()):
+            return True
+    return False
+
+
+def search_jobs_serpapi(
+    query: str,
+    location: str = "",
+    date_posted: str = "today",
+    max_results: int = 10
+):
+    """
+    Core SerpAPI job search function.
+    
+    Args:
+        query: Job search query (e.g., "Marine Scientist")
+        location: Location (e.g., "Florida, USA")
+        date_posted: Filter by date - "today", "3days", "week", "month"
+        max_results: Number of results to return (max 10 for free tier)
+    
+    Returns:
+        List of job dictionaries
+    """
+    api_key = os.getenv("SERPAPI_KEY")
+    
+    if not api_key:
+        return {"error": "SERPAPI_KEY not found in environment variables. Please add it to your .env file."}
+    
+    url = "https://serpapi.com/search"
+    
+    # Map date_posted to SerpAPI chips format
+    date_mapping = {
+        "today": "date_posted:today",
+        "3days": "date_posted:3days",
+        "week": "date_posted:week",
+        "month": "date_posted:month"
+    }
+    chips = date_mapping.get(date_posted, "date_posted:week")
+    
+    params = {
+        "engine": "google_jobs",
+        "q": query,
+        "location": location,
+        "api_key": api_key,
+        "chips": chips,
+        "num": min(max_results, 10)  # Free tier limit
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        results = response.json()
+        
+        jobs = []
+        for job in results.get("jobs_results", []):
+            jobs.append({
+                "title": job.get("title", ""),
+                "company": job.get("company_name", ""),
+                "location": job.get("location", ""),
+                "link": job.get("share_link", ""),
+                "description": job.get("description", "")[:500],  # Truncate long descriptions
+                "via": job.get("via", ""),
+                "date_posted": job.get("detected_extensions", {}).get("posted_at", ""),
+                "salary": job.get("detected_extensions", {}).get("salary", "")
+            })
+        
+        return jobs
+    
+    except requests.exceptions.RequestException as e:
+        return {"error": f"SerpAPI request failed: {str(e)}"}
+    except Exception as e:
+        return {"error": f"Unexpected error: {str(e)}"}
+
+
+def search_jobs(
+    query: str,
+    location: str = "",
+    date_posted: str = "week",
+    max_results: int = 10,
+    usage_limit: int = 95,
+    save_results: bool = True
+):
+    """
+    Search for jobs using SerpAPI with built-in usage tracking and storage.
+    
+    Args:
+        query: Job search query (e.g., "Marine Scientist", "Research Biologist")
+        location: Location (e.g., "Florida, USA", "Remote")
+        date_posted: Filter by date - "today", "3days", "week", "month" (default: "week")
+        max_results: Number of results to return (max 10, default: 10)
+        usage_limit: Stop searching when this many searches reached (default: 95)
+        save_results: Save jobs to job_opportunities.json (default: True)
+    
+    Returns:
+        dict with keys: "jobs", "new_jobs_count", "usage_stats", "warning"
+    
+    Example:
+        >>> search_jobs("Marine Scientist", "Florida", "week")
+        {
+            "jobs": [...],
+            "new_jobs_count": 5,
+            "usage_stats": {"used": 23, "limit": 100, "remaining": 77},
+            "warning": None
+        }
+    """
+    # Check current usage
+    usage_data = _load_serpapi_usage()
+    searches_this_month = _count_searches_this_month(usage_data)
+    remaining = usage_data["monthly_limit"] - searches_this_month
+    
+    # Check if we're over the limit
+    if searches_this_month >= usage_limit:
+        return {
+            "jobs": [],
+            "new_jobs_count": 0,
+            "usage_stats": {
+                "used": searches_this_month,
+                "limit": usage_data["monthly_limit"],
+                "remaining": remaining
+            },
+            "warning": f"⚠️ Usage limit reached ({searches_this_month}/{usage_limit}). Skipping search to preserve quota. Resets on the 1st of next month."
+        }
+    
+    # Perform search
+    jobs = search_jobs_serpapi(query, location, date_posted, max_results)
+    
+    # Check for errors
+    if isinstance(jobs, dict) and "error" in jobs:
+        return {
+            "jobs": [],
+            "new_jobs_count": 0,
+            "usage_stats": {
+                "used": searches_this_month,
+                "limit": usage_data["monthly_limit"],
+                "remaining": remaining
+            },
+            "warning": f"❌ Search failed: {jobs['error']}"
+        }
+    
+    # Log the search
+    _log_serpapi_search(query, len(jobs))
+    searches_this_month += 1
+    remaining -= 1
+    
+    # Save results if requested
+    new_jobs_count = 0
+    if save_results and jobs:
+        opportunities_data = _load_job_opportunities()
+        existing_jobs = opportunities_data["opportunities"]
+        
+        for job in jobs:
+            # Skip duplicates
+            if not _is_duplicate_job(job, existing_jobs):
+                job_id = str(uuid.uuid4())[:8]
+                opportunity = {
+                    "id": job_id,
+                    "title": job["title"],
+                    "company": job["company"],
+                    "location": job["location"],
+                    "link": job["link"],
+                    "description": job["description"],
+                    "via": job["via"],
+                    "date_posted": job["date_posted"],
+                    "salary": job["salary"],
+                    "date_discovered": datetime.now().isoformat(),
+                    "search_query": f"{query} {location}".strip(),
+                    "applied": False
+                }
+                opportunities_data["opportunities"].append(opportunity)
+                new_jobs_count += 1
+        
+        if new_jobs_count > 0:
+            _save_job_opportunities(opportunities_data)
+    
+    # Generate warning if approaching limit
+    warning = None
+    if searches_this_month >= usage_limit * 0.8:  # 80% threshold
+        warning = f"⚠️ Approaching usage limit: {searches_this_month}/{usage_limit} searches used this month"
+    
+    return {
+        "jobs": jobs,
+        "new_jobs_count": new_jobs_count,
+        "usage_stats": {
+            "used": searches_this_month,
+            "limit": usage_data["monthly_limit"],
+            "remaining": remaining
+        },
+        "warning": warning,
+        "message": f"✅ Found {len(jobs)} jobs, {new_jobs_count} new opportunities saved!" if new_jobs_count > 0 else f"Found {len(jobs)} jobs (all previously discovered)."
+    }
+
+
+def get_job_opportunities(
+    days_back: int = None,
+    company: str = None,
+    title: str = None,
+    sort_by: str = "date_discovered"
+):
+    """
+    Query saved job opportunities with optional filters.
+    
+    Args:
+        days_back: Only show jobs discovered in last N days
+        company: Filter by company name (partial match)
+        title: Filter by job title (partial match)
+        sort_by: Sort by field - "date_discovered", "company", "title" (default: "date_discovered")
+    
+    Returns:
+        Formatted string with matching job opportunities
+    
+    Example:
+        >>> get_job_opportunities(days_back=7, title="Marine")
+        "📋 Found 3 job opportunities:
+        1. Marine Scientist - NOAA (Key West, FL)
+           Discovered: Nov 27 | Via: LinkedIn
+           Link: https://..."
+    """
+    data = _load_job_opportunities()
+    opportunities = data["opportunities"]
+    
+    # Apply filters
+    if days_back:
+        cutoff_date = (datetime.now() - __import__('datetime').timedelta(days=days_back)).isoformat()
+        opportunities = [opp for opp in opportunities if opp["date_discovered"] >= cutoff_date]
+    
+    if company:
+        opportunities = [opp for opp in opportunities if company.lower() in opp["company"].lower()]
+    
+    if title:
+        opportunities = [opp for opp in opportunities if title.lower() in opp["title"].lower()]
+    
+    if not opportunities:
+        return "No job opportunities found with those filters."
+    
+    # Sort
+    sort_fields = {
+        "date_discovered": lambda x: x["date_discovered"],
+        "company": lambda x: x["company"],
+        "title": lambda x: x["title"]
+    }
+    
+    if sort_by in sort_fields:
+        opportunities = sorted(opportunities, key=sort_fields[sort_by], reverse=True)
+    
+    # Format output
+    result = [f"📋 Found {len(opportunities)} job opportunity/opportunities:\n"]
+    
+    for i, opp in enumerate(opportunities, 1):
+        date_str = datetime.fromisoformat(opp["date_discovered"]).strftime("%b %d")
+        salary_str = f" | {opp['salary']}" if opp['salary'] else ""
+        applied_str = " ✅ APPLIED" if opp.get('applied') else ""
+        
+        result.append(
+            f"{i}. {opp['title']} - {opp['company']}{applied_str}\n"
+            f"   📍 {opp['location']} | Discovered: {date_str} | Via: {opp['via']}{salary_str}\n"
+            f"   🔗 {opp['link']}\n"
+            f"   ID: {opp['id']}"
+        )
+    
+    return "\n\n".join(result)
+
+
+def get_serpapi_usage_report():
+    """
+    Get detailed SerpAPI usage report.
+    
+    Returns:
+        Formatted string with usage stats and recent search history
+    
+    Example:
+        >>> get_serpapi_usage_report()
+        "📊 SerpAPI Usage Report
+        Month: November 2025
+        Used: 23/100 (23.0%)
+        Remaining: 77 searches
+        
+        Recent Searches:
+          - Nov 29, 12:30 PM: 'Marine Scientist Florida' (8 results)
+          - Nov 29, 09:15 AM: 'Research Biologist Remote' (5 results)"
+    """
+    usage_data = _load_serpapi_usage()
+    searches_this_month = _count_searches_this_month(usage_data)
+    remaining = usage_data["monthly_limit"] - searches_this_month
+    
+    # Calculate percentage
+    percentage = (searches_this_month / usage_data["monthly_limit"]) * 100
+    
+    report = [
+        "📊 SerpAPI Usage Report",
+        f"Month: {datetime.now().strftime('%B %Y')}",
+        f"Used: {searches_this_month}/{usage_data['monthly_limit']} ({percentage:.1f}%)",
+        f"Remaining: {remaining} searches",
+        ""
+    ]
+    
+    # Recent searches
+    current_month = datetime.now().strftime("%Y-%m")
+    recent = [s for s in usage_data["searches"] if s["date"].startswith(current_month)][-5:]
+    
+    if recent:
+        report.append("Recent Searches:")
+        for s in recent:
+            date_str = datetime.fromisoformat(s["date"]).strftime("%b %d, %I:%M %p")
+            report.append(f"  - {date_str}: '{s['query']}' ({s['results']} results)")
+    else:
+        report.append("No searches this month yet.")
+    
+    return "\n".join(report)
+
+
+def delete_job_opportunity(job_id: str):
+    """
+    Delete a job opportunity from the tracker.
+    
+    Args:
+        job_id: Job opportunity ID to delete
+    
+    Returns:
+        Confirmation message
+    
+    Example:
+        >>> delete_job_opportunity("abc12345")
+        "✅ Deleted job opportunity: Marine Scientist - NOAA"
+    """
+    data = _load_job_opportunities()
+    
+    # Find and remove job
+    original_count = len(data["opportunities"])
+    job_to_delete = None
+    
+    for opp in data["opportunities"]:
+        if opp["id"] == job_id:
+            job_to_delete = opp
+            break
+    
+    if not job_to_delete:
+        return f"Error: Job opportunity with ID '{job_id}' not found"
+    
+    data["opportunities"] = [opp for opp in data["opportunities"] if opp["id"] != job_id]
+    
+    if len(data["opportunities"]) == original_count:
+        return f"Error: Failed to delete job opportunity"
+    
+    _save_job_opportunities(data)
+    return f"✅ Deleted job opportunity: {job_to_delete['title']} - {job_to_delete['company']}"
+
+
 # Wrap as ADK FunctionTools
 job_tracker_add_tool = FunctionTool(func=add_job_application)
 job_tracker_update_tool = FunctionTool(func=update_job_application)
@@ -675,6 +1203,14 @@ job_tracker_delete_tool = FunctionTool(func=delete_job_application)
 cold_email_add_tool = FunctionTool(func=add_cold_email)
 cold_email_update_tool = FunctionTool(func=update_cold_email)
 cold_email_query_tool = FunctionTool(func=query_cold_emails)
+
+network_graph_tool = FunctionTool(func=generate_network_graph)
+
+# Job Search / Opportunities Tools
+job_search_tool = FunctionTool(func=search_jobs)
+job_opportunities_query_tool = FunctionTool(func=get_job_opportunities)
+serpapi_usage_tool = FunctionTool(func=get_serpapi_usage_report)
+job_opportunity_delete_tool = FunctionTool(func=delete_job_opportunity)
 
 
 # ---------------------------------------------------------------------

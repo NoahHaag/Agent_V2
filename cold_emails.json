@@ -14,7 +14,7 @@
         "2025-11-25"
       ],
       "notes": "",
-      "last_updated": "2025-11-28T22:59:12.722449"
+      "last_updated": "2025-11-29T12:23:04.197731"
     },
     {
       "id": "2ac1d371",
@@ -30,7 +30,7 @@
         "2025-11-25"
       ],
       "notes": "",
-      "last_updated": "2025-11-28T22:59:14.952388"
+      "last_updated": "2025-11-29T12:23:07.907917"
     },
     {
       "id": "88ebdea9",
@@ -46,7 +46,7 @@
         "2025-11-25"
       ],
       "notes": "",
-      "last_updated": "2025-11-28T22:59:17.232445"
+      "last_updated": "2025-11-29T12:23:12.767832"
     },
     {
       "id": "c577013f",
@@ -62,7 +62,7 @@
         "2025-11-25"
       ],
       "notes": "",
-      "last_updated": "2025-11-28T22:59:19.758099"
+      "last_updated": "2025-11-29T12:24:15.251321"
     },
     {
       "id": "b604be5e",
@@ -76,7 +76,7 @@
       "response_date": null,
       "follow_up_dates": [],
       "notes": "Awaiting response",
-      "last_updated": "2025-11-26T23:43:28.561952"
+      "last_updated": "2025-11-29T12:21:46.752650"
     },
     {
       "id": "816e521a",
@@ -90,7 +90,7 @@
       "response_date": null,
       "follow_up_dates": [],
       "notes": "No response yet",
-      "last_updated": "2025-11-28T22:59:22.484819"
+      "last_updated": "2025-11-29T12:21:49.659773"
     },
     {
       "id": "5c229745",
@@ -104,7 +104,7 @@
       "response_date": null,
       "follow_up_dates": [],
       "notes": "No response yet",
-      "last_updated": "2025-11-28T22:59:24.574571"
+      "last_updated": "2025-11-29T12:21:52.468805"
     },
     {
       "id": "4518d809",
@@ -118,7 +118,8 @@
       "response_date": null,
       "follow_up_dates": [],
       "notes": "No response yet",
-      "last_updated": "2025-11-26T19:07:08.511356"
+      "last_updated": "2025-11-29T12:21:56.347733",
+      "referred_by": "Dr. Tarik Gouhier"
     },
     {
       "id": "709ea4cb",
@@ -132,7 +133,8 @@
       "response_date": null,
       "follow_up_dates": [],
       "notes": "No response yet",
-      "last_updated": "2025-11-26T19:07:08.513352"
+      "last_updated": "2025-11-29T12:23:00.665951",
+      "referred_by": "Dr. Tarik Gouhier"
     },
     {
       "id": "0a7f3ce0",
@@ -160,7 +162,8 @@
       "response_date": "2023-11-11",
       "follow_up_dates": [],
       "notes": "Referred by Professor Tarik. Successful Zoom meeting on 11/11.\n[2025-11-28] Meeting was informational, not job-seeking.",
-      "last_updated": "2025-11-28T20:57:57.738927"
+      "last_updated": "2025-11-29T12:07:44.136445",
+      "referred_by": "Dr. Tarik Gouhier"
     },
     {
       "id": "4f3f0e36",
@@ -202,7 +205,8 @@
       "response_date": "2023-11-24",
       "follow_up_dates": [],
       "notes": "Informational Zoom call on 11/24.",
-      "last_updated": "2025-11-28T21:05:55.495495"
+      "last_updated": "2025-11-29T12:07:47.022458",
+      "referred_by": "Dr. Tarik Gouhier"
     },
     {
       "id": "5af5eca3",
@@ -244,7 +248,8 @@
       "response_date": null,
       "follow_up_dates": [],
       "notes": "",
-      "last_updated": "2025-11-29T11:20:26.428203"
+      "last_updated": "2025-11-29T12:07:38.126969",
+      "referred_by": "Dr. Tarik Gouhier"
     }
   ]
 }
