@@ -52,11 +52,24 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "[COMMIT] Committing changes..." -ForegroundColor Cyan
     git commit -m $Message
     
-    Write-Host "[PUSH] Pushing to GitHub..." -ForegroundColor Cyan
-    git push origin main
-    
-    Write-Host "[SUCCESS] All done!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Changes committed." -ForegroundColor Green
 }
 else {
     Write-Host "[INFO] No changes to commit" -ForegroundColor Yellow
 }
+
+# Always try to sync (Pull then Push)
+Write-Host "[SYNC] Syncing with remote..." -ForegroundColor Cyan
+
+Write-Host "[PULL] ensuring local is up to date..." -ForegroundColor Cyan
+git pull --rebase origin main
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERROR] Pull failed. Please resolve conflicts manually." -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "[PUSH] Pushing to GitHub..." -ForegroundColor Cyan
+git push origin main
+
+Write-Host "[SUCCESS] All done!" -ForegroundColor Green
