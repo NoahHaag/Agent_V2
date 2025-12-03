@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 import PyPDF2
+import json
 
 # Page Configuration
 st.set_page_config(
@@ -19,6 +20,7 @@ load_dotenv()
 MODEL_ID = "gemini-2.0-flash-001"
 RESUME_PATH = "public/Resume.pdf"
 PROFILE_PHOTO_PATH = "public/profile.png" # Assuming a PNG, change if JPG
+BRAIN_PATH = "data/brain.json"
 
 @st.cache_resource
 def load_resume_content():
@@ -36,6 +38,19 @@ def load_resume_content():
         st.error(f"Error reading PDF: {e}")
         return None
     return text
+
+@st.cache_resource
+def load_brain_content():
+    """Loads the 'brain' JSON file containing hidden context."""
+    if not os.path.exists(BRAIN_PATH):
+        return None
+    
+    try:
+        with open(BRAIN_PATH, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        st.error(f"Error reading Brain JSON: {e}")
+        return None
 
 @st.cache_resource
 def get_gemini_client():
@@ -58,18 +73,19 @@ with st.sidebar:
     st.title("Noah Haag")
     st.markdown("---")
     st.subheader("Connect with me:")
-    st.markdown("📧 [Your Email](mailto:noahhaag1998@gmail.com)")
-    st.markdown("👔 [LinkedIn Profile](https://www.linkedin.com/in/noah-haag-961691161/)")
-    st.markdown("🐙 [GitHub Profile](https://github.com/NoahHaag)")
+    st.markdown("📧 [Your Email](mailto:youremail@example.com)") # UPDATE THIS
+    st.markdown("👔 [LinkedIn Profile](https://www.linkedin.com/in/yourprofile)") # UPDATE THIS
+    st.markdown("🐙 [GitHub Profile](https://github.com/yourusername)") # UPDATE THIS
     st.markdown("---")
     
-    with open(RESUME_PATH, "rb") as file:
-        btn = st.download_button(
-            label="Download Full Resume",
-            data=file,
-            file_name="Noah_Haag_Resume.pdf",
-            mime="application/pdf"
-        )
+    if os.path.exists(RESUME_PATH):
+        with open(RESUME_PATH, "rb") as file:
+            btn = st.download_button(
+                label="Download Full Resume",
+                data=file,
+                file_name="Noah_Haag_Resume.pdf",
+                mime="application/pdf"
+            )
 
 st.title("Talk to My Resume 🤖")
 st.markdown("Ask questions about my experience, skills, or background.")
@@ -87,22 +103,39 @@ if not resume_text:
     st.error("Could not load resume content. Please ensure public/Resume.pdf exists.")
     st.stop()
 
+# Load Brain
+brain_content = load_brain_content()
+if not brain_content:
+    # Optional: Warn if brain is missing, or just proceed without it
+    # st.warning("Brain content not found. Some answers may be limited.")
+    brain_text = "{}" # Empty JSON if missing
+else:
+    brain_text = json.dumps(brain_content, indent=2)
+
 # Initialize Session State
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 if "chat_session" not in st.session_state:
     # System Prompt Injection (Hidden from UI)
-    system_instruction = f"""You are Noah Haag. Your goal is to represent yourself based on the provided resume context.
-    Answer questions about your experience, skills, and background based STRICTLY on the RESUME CONTEXT provided below.
-    Keep your answers concise and professional, typically under 3-4 sentences, unless the user asks for more detail.
+    system_instruction = f"""You are Noah Haag. Your goal is to represent yourself based on the provided context.
     
-    If the answer is NOT in your resume, politely state that you do not have that specific information in your resume. DO NOT invent information.
+    You have access to two sources of information:
+    1. **RESUME CONTEXT**: Your official professional history. Prioritize this for factual questions about dates, roles, and hard skills.
+    2. **HIDDEN CONTEXT (BRAIN)**: Your deeper thoughts, personality, logistics (availability, relocation), and behavioral stories (STAR method). Use this to answer questions about "soft skills", "failures", "leadership", or "why you love tech".
     
-    If the user asks for your contact information or how to hire you, provide your email, LinkedIn, and GitHub links (from your sidebar information, if available) clearly and enthusiastically.
+    **INSTRUCTIONS:**
+    - Answer questions based STRICTLY on the context provided below.
+    - Keep your answers concise and professional, typically under 3-4 sentences, unless the user asks for more detail.
+    - If the answer is NOT in your Resume or Brain, politely state that you do not have that specific information. DO NOT invent information.
+    - If the user asks for your contact information or how to hire you, provide your email, LinkedIn, and GitHub links (from your sidebar information, if available) clearly and enthusiastically.
+    - Be engaging and personable, using the "Voice" found in the 'technical_opinions' or 'hobbies' section of the Brain if appropriate.
 
-    RESUME CONTEXT:
+    **RESUME CONTEXT:**
     {resume_text}
+    
+    **HIDDEN CONTEXT (BRAIN):**
+    {brain_text}
     """
     st.session_state.chat_session = client.chats.create(
         model=MODEL_ID,
