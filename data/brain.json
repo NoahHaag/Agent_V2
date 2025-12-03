@@ -1,0 +1,34 @@
+{
+    "logistics": {
+        "availability": "I can start immediately (2 weeks notice).",
+        "relocation": "I am based in Grafton, MA. I am open to hybrid roles in the Boston area or fully remote roles.",
+        "citizenship": "US Citizen, no sponsorship required.",
+        "salary_expectations": "I am targeting roles in the $90k - $120k range, depending on the total compensation package and benefits."
+    },
+    "behavioral_stories": {
+             "leadership": {
+                   "prompt": "Tell me about a time you led a team.",
+                   "story": "STAR Method: While working as a Teaching Assistant for the Three Seas Program, I managed over 20 students in high-risk diving environments. I developed a new safety protocol (Action) that reduced equipment setup time by 30% and ensured zero safety incidents during the semester (Result)."
+        },
+        "technical_challenge": {
+            "prompt": "Describe a difficult technical problem you solved.",
+            "story": "STAR Method: In the 'Agent V2' project, I struggled with high latency in API responses. I researched asynchronous programming and refactored the tool execution layer using Python's asyncio (Action). This reduced the agent's response time from 10 seconds to under 3 seconds (Result)."
+        },
+             "conflict_resolution": {
+                   "prompt": "Tell me about a disagreement with a colleague.",
+     "story": "STAR Method: During a collaborative research project, a team member wanted to use Excel for data analysis while I advocated for R. I demonstrated a quick prototype in R showing how it could automate our weekly reporting (Action). The team adopted R, saving us 5 hours of manual entry per week (Result)."
+        },
+        "failure": {
+            "prompt": "Tell me about a time you failed.",
+            "story": "During a meta-analysis at the Kimbro Lab, I once wrongly coded an R function for standard error, using a static degree of freedom on data requiring multiple, which set us back two weeks; it taught me the critical importance of rigorous code review and incremental validation, significantly improving our analytical reliability."
+        }
+    },
+    "technical_opinions": {
+        "favorite_stack": "I love Python for its ecosystem. My go-to stack right now is LangChain or Google ADK for the backend logic, Streamlit for rapid UI prototyping, and ChromaDB for vector storage.",
+        "why_ai": "I believe AI is the next frontier for environmental science. I want to build agents that can process ecological data faster than humanly possible to aid in conservation efforts."
+    },
+    "hobbies_and_personality": {
+        "hobbies": "Outside of coding, I am an avid SCUBA diver (Master Diver) and volunteer as a Conservation Commissioner. I love complex systems, whether they are underwater ecosystems or distributed software architectures.",
+        "fun_fact": "I have logged over 100 dives. I was once a balloon holder for the Macy's Thanksgiving Day Parade."
+    }
+}

@@ -224,19 +224,27 @@ The agent runs **automated job searches** via GitHub Actions:
 
 ```
 Agent_V2/
-├── agent.py                          # Main entry point
-├── tools_2.py                        # Tool implementations (1400+ lines)
-├── run_job_search.py                 # Standalone script for automation
+├── agent.py                          # Main agent implementation
+├── fast_agent.py                     # Optimized/Fast agent implementation
+├── streamlit_app.py                  # Web interface for the agent
+├── tools_2.py                        # Core tool definitions
+├── run_job_search.py                 # Job search automation script
+├── run_job_fair_tool.py              # Job fair specific automation
+├── smart_commit.ps1                  # Smart git commit automation
+├── auto_sync.ps1                     # Auto-sync helper script
+├── get_embedding_function.py         # Embedding utilities
 ├── .github/workflows/
-│   └── job_monitor.yml               # GitHub Actions workflow
-├── documents/                        # CV storage
+│   ├── job_monitor.yml               # Scheduled job search workflow
+│   ├── job_fair.yml                  # Job fair workflow
+│   └── run-agent.yml                 # General agent workflow
+├── documents/                        # CV and Profile storage
 ├── cover_letters/                    # Generated cover letters
-├── job_applications.json             # Application tracker
-├── job_opportunities.json            # Discovered jobs
-├── cold_emails.json                  # Outreach tracker
-├── serpapi_usage.json                # API quota tracking
-├── my_agent_data.db                  # SQLite session storage
-└── JOB_SEARCH_SETUP.md              # Detailed setup guide
+├── job_applications.json             # Application tracker database
+├── job_opportunities.json            # Job listings database
+├── cold_emails.json                  # Cold email outreach tracker
+├── serpapi_usage.json                # API usage logs
+├── JOB_SEARCH_SETUP.md               # Setup guide
+└── public/                           # Public assets
 ```
 
 ---
