@@ -15,3 +15,4 @@ docx2pdf
 python-dotenv
 requests
 qrcode[pil]
+firebase-admin
