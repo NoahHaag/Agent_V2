@@ -7,8 +7,8 @@ import PyPDF2
 
 # Page Configuration
 st.set_page_config(
-    page_title="Noah Haag - AI Resume Agent",
-    page_icon="📄",
+    page_title="Noah Haag | Interactive Resume",
+    page_icon="📄", # You can change this to a custom emoji or image
     layout="centered"
 )
 
@@ -18,6 +18,7 @@ load_dotenv()
 # Constants
 MODEL_ID = "gemini-2.0-flash-001"
 RESUME_PATH = "public/Resume.pdf"
+PROFILE_PHOTO_PATH = "public/profile.png" # Assuming a PNG, change if JPG
 
 @st.cache_resource
 def load_resume_content():
@@ -50,11 +51,30 @@ def get_gemini_client():
 
 # --- Main UI ---
 
-st.title("Talk to Noah's Resume 🤖")
+# Sidebar Content
+with st.sidebar:
+    if os.path.exists(PROFILE_PHOTO_PATH):
+        st.image(PROFILE_PHOTO_PATH, use_column_width=True)
+    st.title("Noah Haag")
+    st.markdown("---")
+    st.subheader("Connect with me:")
+    st.markdown("📧 [Your Email](mailto:noahhaag1998@gmail.com)")
+    st.markdown("👔 [LinkedIn Profile](https://www.linkedin.com/in/noah-haag-961691161/)")
+    st.markdown("🐙 [GitHub Profile](https://github.com/NoahHaag)")
+    st.markdown("---")
+    
+    with open(RESUME_PATH, "rb") as file:
+        btn = st.download_button(
+            label="Download Full Resume",
+            data=file,
+            file_name="Noah_Haag_Resume.pdf",
+            mime="application/pdf"
+        )
+
+st.title("Talk to My Resume 🤖")
 st.markdown("Ask questions about my experience, skills, or background.")
 
 # Initialize Client
-# We use cache_resource above, so this doesn't re-instantiate the client object repeatedly
 client = get_gemini_client()
 
 if not client:
@@ -73,11 +93,14 @@ if "messages" not in st.session_state:
 
 if "chat_session" not in st.session_state:
     # System Prompt Injection (Hidden from UI)
-    system_instruction = f"""You are a helpful assistant representing Noah Haag.
-    You have access to Noah's resume context below.
-    Answer questions about Noah's experience, skills, and background based strictly on this information.
-    Be concise, professional, and engaging.
+    system_instruction = f"""You are Noah Haag. Your goal is to represent yourself based on the provided resume context.
+    Answer questions about your experience, skills, and background based STRICTLY on the RESUME CONTEXT provided below.
+    Keep your answers concise and professional, typically under 3-4 sentences, unless the user asks for more detail.
     
+    If the answer is NOT in your resume, politely state that you do not have that specific information in your resume. DO NOT invent information.
+    
+    If the user asks for your contact information or how to hire you, provide your email, LinkedIn, and GitHub links (from your sidebar information, if available) clearly and enthusiastically.
+
     RESUME CONTEXT:
     {resume_text}
     """
@@ -94,26 +117,45 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+# Quick Action Buttons
+col1, col2, col3 = st.columns(3)
+if col1.button("Tell me about your skills"):
+    st.session_state.messages.append({"role": "user", "content": "Tell me about your skills"})
+    st.session_state.last_button_question = "Tell me about your skills"
+if col2.button("What's your education history?"):
+    st.session_state.messages.append({"role": "user", "content": "What's your education history?"})
+    st.session_state.last_button_question = "What's your education history?"
+if col3.button("How can I contact you?"):
+    st.session_state.messages.append({"role": "user", "content": "How can I contact you?"})
+    st.session_state.last_button_question = "How can I contact you?"
+
 # Chat Input
-if prompt := st.chat_input("Ask me anything..."):
+prompt = st.chat_input("Ask me anything...")
+
+# Handle button clicks
+if "last_button_question" in st.session_state and st.session_state.last_button_question and not prompt:
+    prompt = st.session_state.last_button_question
+    st.session_state.last_button_question = None # Clear after use
+
+if prompt:
     # Add user message to UI
-    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     # Generate Response
-    try:
-        # We use the session_state chat object which persists across reruns
-        response = st.session_state.chat_session.send_message(prompt)
-        
-        # Add assistant message to UI
-        with st.chat_message("assistant"):
-            st.markdown(response.text)
-        
-        st.session_state.messages.append({"role": "assistant", "content": response.text})
-        
-    except Exception as e:
-        # If the session somehow died (e.g. timeout), we can try to recover or just show error
-        st.error(f"An error occurred: {e}")
-        # Optional: Force a reload of the page if critical
-        # st.rerun()
+    with st.spinner('Noah is thinking...'): # Added spinner for visual feedback
+        try:
+            # We use the session_state chat object which persists across reruns
+            response = st.session_state.chat_session.send_message(prompt)
+            
+            # Add assistant message to UI
+            with st.chat_message("assistant"):
+                st.markdown(response.text)
+            
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
+            
+        except Exception as e:
+            # If the session somehow died (e.g. timeout), we can try to recover or just show error
+            st.error(f"An error occurred: {e}")
+            # Optional: Force a reload of the page if critical
+            # st.rerun()
