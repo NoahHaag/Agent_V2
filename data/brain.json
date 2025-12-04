@@ -55,7 +55,7 @@
             "trigger_words": ["agent v2", "autonomous loop", "tool execution", "agent architecture", "gemini"],
             "image_path": "public/agent_v2_visual.png",
             "caption": "Architecture concept of my Agent V2, handling parallel tool execution.",
-            "link": "https://github.com/NoahHaag/Agent_V2"
+            "link": "https://github.com/NoahHaag/Job_Assistant/blob/main/agent.py"
         },
         "meta_analysis_map": {
             "trigger_words": ["gis", "spatial data", "locations", "global study", "arcgis", "map"],
