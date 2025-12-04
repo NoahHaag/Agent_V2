@@ -7,7 +7,7 @@ from tools_2 import (
     qr_code_tool,
     portfolio_export_tool
 )
-from google.adk.models import Gemini
+from google import genai
 from google.genai import types
 
 # Setup Gemini for standalone use (similar to agent.py)
@@ -15,16 +15,15 @@ api_key = os.getenv("GOOGLE_API_KEY")
 if api_key:
     api_key = api_key.strip().strip('"').strip("'")
 
-gemini_kwargs = {
-    "api_key": api_key,
-    "retry_options": types.HttpRetryOptions(attempts=5)
-}
-model = Gemini(model="gemini-2.5-flash", **gemini_kwargs)
+client = genai.Client(api_key=api_key)
 
 def generate_content(prompt):
     """Simple wrapper to call Gemini."""
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-2.0-flash-001",
+            contents=prompt
+        )
         return response.text
     except Exception as e:
         return f"Error generating content: {e}"
