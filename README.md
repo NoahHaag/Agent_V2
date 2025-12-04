@@ -93,9 +93,9 @@ graph TD
     User((User))
     
     subgraph "Interfaces"
-        Streamlit[Interactive Resume<br>(Streamlit)]
-        CLI[Job Fair Tools<br>(CLI)]
-        Agent[Core Agent<br>(ADK)]
+        Streamlit["Interactive Resume<br>(Streamlit)"]
+        CLI["Job Fair Tools<br>(CLI)"]
+        Agent["Core Agent<br>(ADK)"]
     end
     
     subgraph "Data & Models"
@@ -159,7 +159,7 @@ graph TD
 
 ## 📁 Project Structure
 
-```
+```text
 Agent_V2/
 ├── agent.py                  # Core ADK Agent
 ├── streamlit_app.py          # Interactive Resume App
