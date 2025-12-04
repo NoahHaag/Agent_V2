@@ -529,12 +529,10 @@ async def summarize_conversation(history_text, model):
         return "Error generating summary."
 
 
-async def main():
-
-    user_id = "Noah_Haag"
-    session_id = "Job_Search"
-
-    # ✅ Create or reuse the same session (so memory persists)
+async def get_or_create_session(user_id: str, session_id: str):
+    """
+    Gets an existing session or creates a new one if it doesn't exist.
+    """
     try:
         session = await runner.session_service.get_session(
             app_name="Agent_V2",
@@ -546,6 +544,7 @@ async def main():
             raise ValueError("Session not found")
 
         print("Loaded existing session.")
+        return session
 
     except Exception:
         print("Creating new session...")
@@ -555,6 +554,16 @@ async def main():
             session_id=session_id,
         )
         print("New session created.")
+        return session
+
+
+async def main():
+
+    user_id = "Noah_Haag"
+    session_id = "Job_Search"
+
+    # ✅ Create or reuse the same session (so memory persists)
+    session = await get_or_create_session(user_id, session_id)
 
     await memory_service.add_session_to_memory(session)
 

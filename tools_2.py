@@ -1843,7 +1843,18 @@ try:
     GMAIL_AVAILABLE = True
     
 except (FileNotFoundError, Exception) as e:
-    print(f"[WARNING] Gmail tools not available: {e}")
+    error_str = str(e)
+    if "invalid_grant" in error_str:
+        print(f"[WARNING] Gmail token expired or revoked: {e}")
+        try:
+            if os.path.exists("token.json"):
+                os.remove("token.json")
+                print("[INFO] Deleted expired token.json. Please restart the agent to re-authenticate with Gmail.")
+        except Exception as delete_error:
+            print(f"[ERROR] Failed to delete expired token.json: {delete_error}")
+    else:
+        print(f"[WARNING] Gmail tools not available: {e}")
+    
     print("[INFO] Agent will run without Gmail functionality")
     
     # Create dummy tools that return helpful error messages
