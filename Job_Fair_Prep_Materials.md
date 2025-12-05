@@ -121,6 +121,54 @@
 
 ---
 
+### 8. Mass Audubon
+**Strategic Focus:** Climate Resilience, Biodiversity, Nature Equity, "Action Agenda 2021-2026".
+
+#### 📄 One-Page Brief
+*   **Recent News:** Launching a $5 million fund for biodiversity; advocating for legislation to ban harmful rodenticides; implementing a DEIJA Strategic Plan to close the nature equity gap.
+*   **Mission:** "To protect the nature of Massachusetts for people and for wildlife."
+*   **Values:** Joy, Courage, Curiosity, Community, Integrity.
+
+#### 🎤 Tailored Pitch Angle
+"Hi, I'm Noah Haag. I’m a Conservation Commissioner and Environmental Scientist with a background in marine ecology and data science. In my commissioner role, I evaluate development proposals against the Wetlands Protection Act, directly balancing growth with ecological stewardship. My technical background includes analyzing complex ecological datasets—like monitoring protected species—to inform policy. I admire Mass Audubon’s 'Action Agenda' to tackle climate change and biodiversity loss, and I’d love to discuss how my experience in both regulatory compliance and data-driven conservation could support your advocacy and land protection goals."
+
+#### 🧠 Strategic Question to Ask
+*"With the ambitious goals of the 'Action Agenda 2021-2026,' how is Mass Audubon leveraging data analytics to prioritize land acquisitions that offer the highest climate resilience and biodiversity value?"*
+
+---
+
+### 9. The Trustees of Reservations
+**Strategic Focus:** Land Stewardship, Coastal Resilience, Historic Preservation, Public Access ("Momentum").
+
+#### 📄 One-Page Brief
+*   **Recent News:** Welcomed Katie Theoharides (former Energy/Env Secretary) as CEO; partnering to preserve 1,200 acres at Hale Education; launching a "Coastal Strategy" to manage climate vulnerability.
+*   **Mission:** "To protect and share the Massachusetts places people love for their exceptional scenic, historic, and ecological value."
+*   **Values:** Conservation, Stewardship, Innovation, Connection.
+
+#### 🎤 Tailored Pitch Angle
+"Hi, I'm Noah Haag. I'm a Marine Biologist and Data Scientist with a deep connection to coastal ecosystems. My background includes extensive scientific diving and leading research on artificial reefs, so I understand the dynamic nature of our coastlines firsthand. I’m also a Conservation Commissioner, where I apply environmental regulations to protect local resources. I’m incredibly interested in The Trustees’ 'Coastal Strategy' for climate resilience. I’d love to explore how my expertise in marine field research and spatial data analysis (ArcGIS) could help model and manage the changing landscapes of your coastal properties."
+
+#### 🧠 Strategic Question to Ask
+*"As you implement your 'Coastal Strategy,' how are you using predictive modeling to decide which properties require immediate intervention versus managed retreat in the face of rising sea levels?"*
+
+---
+
+### 10. Museum of Science, Boston
+**Strategic Focus:** Public Science Learning ("Boston Science Common"), Digital Engagement, Climate Action ("Year of the Earthshot").
+
+#### 📄 One-Page Brief
+*   **Recent News:** "Year of the Earthshot" initiative focusing on climate solutions; renovating to create the "Public Science Common" with centers for Data, Climate, and Life Sciences; partnership with Kahoot! for global reach.
+*   **Mission:** "To inspire a lifelong love of science in everyone."
+*   **Values:** Everyone, Service, Learning, Connection, Boldness.
+
+#### 🎤 Tailored Pitch Angle
+"Hi, I'm Noah Haag. I'm a Data Scientist and Marine Biologist with a passion for making complex science accessible. As a Teaching Assistant, I loved mentoring students and breaking down technical concepts, and I’ve used data visualization tools to communicate my own research findings. I’m thrilled about the Museum's new 'Public Science Common,' especially the focus on Data and Climate. I believe my unique blend of technical data skills and background in environmental storytelling would be a perfect fit for developing engaging, data-driven narratives for your new exhibits."
+
+#### 🧠 Strategic Question to Ask
+*"With the new 'Public Science Common' focusing on data and climate, how is the Museum planning to use real-time data visualization to help the public understand abstract concepts like carbon footprints or biodiversity loss?"*
+
+---
+
 ## 🛠️ General Strategy
 *   **The "Fieldwork" Hook:** Use your background in Marine Biology/Diving as a differentiator. It proves you are adaptable, safety-conscious, and practical—not just a theoretical coder.
 *   **The "Data" Bridge:** Frame your Master's research (meta-analysis) as "Big Data Synthesis." You took messy, unstructured global data and made it usable. That is exactly what tech companies need.
