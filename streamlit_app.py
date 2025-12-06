@@ -17,7 +17,7 @@ st.set_page_config(
 load_dotenv()
 
 # Constants
-MODEL_ID = "gemini-2.0-flash-001"
+MODEL_ID = "gemini-2.0-flash-lite"
 RESUME_PATH = "public/Resume.pdf"
 PROFILE_PHOTO_PATH = "public/profile.png" # Assuming a PNG, change if JPG
 BRAIN_PATH = "data/brain.json"
