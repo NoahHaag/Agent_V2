@@ -214,8 +214,58 @@ if prompt:
                         continue # Try next backup
 
                 if not success_fallback:
-                    st.error(f"All models are currently busy or unavailable. Please try again later.")
+                    # --- EMERGENCY OFFLINE MODE ---
+                    st.toast("⚠️ API Rate Limit Reached. Switching to Offline Mode.", icon="📡")
+                    
+                    def get_fallback_response(query, resume_txt, brain_data):
+                        query = query.lower()
+                        
+                        # 1. Direct Intent Matching (Fast & Free)
+                        if "contact" in query or "email" in query or "reach" in query:
+                            return "You can reach me via:\n- **Email**: noahhaag1998@gmail.com\n- **LinkedIn**: [Profile](https://www.linkedin.com/in/noah-haag-961691161/)\n- **GitHub**: [NoahHaag](https://github.com/NoahHaag)"
+                        
+                        if "skill" in query or "stack" in query:
+                             # Try to extract skills from Brain or Resume
+                             if isinstance(brain_data, dict) and "skills" in brain_data:
+                                 return f"**My Key Skills:**\n{json.dumps(brain_data['skills'], indent=2)}"
+                             return "I have experience with Python, AI/ML, Streamlit, and Data Analysis. (Check my resume for the full list!)"
+                             
+                        if "education" in query or "university" in query or "degree" in query:
+                            # Simple extraction heuristic
+                            return "I have a background in Marine Biology and Computer Science. Please download my resume for the full education history."
+
+                        # 2. Keyword Search (Vector-lite)
+                        # Split resume into paragraphs
+                        paragraphs = [p.strip() for p in resume_txt.split('\n') if len(p.strip()) > 20]
+                        query_words = set(query.split())
+                        
+                        best_match = None
+                        best_score = 0
+                        
+                        for p in paragraphs:
+                            score = sum(1 for w in query_words if w in p.lower())
+                            if score > best_score:
+                                best_score = score
+                                best_match = p
+                        
+                        if best_match and best_score > 0:
+                            return f"*(Offline Mode)* Here is something relevant from my resume:\n\n> {best_match}"
+                        
+                        return "I'm currently experiencing high traffic and couldn't process that specific question. Please try asking about my **Skills**, **Education**, or **Contact Info**, or download my resume from the sidebar!"
+
+                    # Generate offline response
+                    offline_response_text = get_fallback_response(prompt, resume_text, brain_content)
+                    
+                    # Add to chat history so it looks normal
+                    st.session_state.messages.append({"role": "assistant", "content": offline_response_text})
+                    
+                    # Display
+                    with st.chat_message("assistant"):
+                        st.markdown(offline_response_text)
+                        
+                    # Stop further execution to avoid error display
                     st.stop()
+
             else:
                 st.error(f"An error occurred: {e}")
                 st.stop()
