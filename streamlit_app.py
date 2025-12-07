@@ -271,6 +271,8 @@ if prompt:
                     st.stop() 
                     
                 except Exception as groq_e:
+                    # Show the actual error to the user for debugging
+                    st.error(f"Groq Fallback Error: {str(groq_e)}")
                     print(f"Groq backup failed: {groq_e}")
 
             if not success_fallback:
