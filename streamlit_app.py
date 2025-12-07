@@ -17,7 +17,8 @@ st.set_page_config(
 load_dotenv()
 
 # Constants
-MODEL_ID = "gemini-2.0-flash-lite"
+MODEL_ID = "gemini-2.0-flash-001"
+BACKUP_MODELS = ["gemini-1.5-flash", "gemini-1.5-pro"]
 RESUME_PATH = "public/Resume.pdf"
 PROFILE_PHOTO_PATH = "public/profile.png" # Assuming a PNG, change if JPG
 BRAIN_PATH = "data/brain.json"
@@ -71,12 +72,12 @@ with st.sidebar:
     if os.path.exists(PROFILE_PHOTO_PATH):
         st.image(PROFILE_PHOTO_PATH, use_column_width=True)
     st.title("Noah Haag")
-    st.markdown("---")
+    st.markdown("--- ")
     st.subheader("Connect with me:")
     st.markdown("📧 [Your Email](mailto:noahhaag1998@gmail.com)") # UPDATE THIS
     st.markdown("👔 [LinkedIn Profile](https://www.linkedin.com/in/noah-haag-961691161/)") # UPDATE THIS
     st.markdown("🐙 [GitHub Profile](https://github.com/NoahHaag)") # UPDATE THIS
-    st.markdown("---")
+    st.markdown("--- ")
     
     if os.path.exists(RESUME_PATH):
         with open(RESUME_PATH, "rb") as file:
@@ -112,33 +113,34 @@ if not brain_content:
 else:
     brain_text = json.dumps(brain_content, indent=2)
 
+# System Prompt Injection (Hidden from UI)
+system_instruction = f"""You are Noah Haag. Your goal is to represent yourself based on the provided context.
+
+You have access to two sources of information:
+1. **RESUME CONTEXT**: Your official professional history. Prioritize this for factual questions about dates, roles, and hard skills.
+2. **HIDDEN CONTEXT (BRAIN)**: Your deeper thoughts, personality, logistics (availability, relocation), and behavioral stories (STAR method). Use this to answer questions about "soft skills", "failures", "leadership", or "why you love tech".
+
+**INSTRUCTIONS:**
+- Answer questions based STRICTLY on the context provided below.
+- Keep your answers concise and professional, typically under 3-4 sentences, unless the user asks for more detail.
+- If the answer is NOT in your Resume or Brain, politely state that you do not have that specific information. DO NOT invent information.
+- If the user asks for your contact information or how to hire you, provide your email, LinkedIn, and GitHub links (from your sidebar information, if available) clearly and enthusiastically.
+- Use the 'marine_biology_context' to explain how your scientific background enhances your engineering skills (e.g., rigor, adaptability) when asked about your career transition or background.
+- When asked for a fun fact, pick one randomly from the 'fun_facts' list in the Brain.
+- Be engaging and personable, using the "Voice" found in the 'technical_opinions' or 'hobbies' section of the Brain if appropriate.
+
+**RESUME CONTEXT:**
+{resume_text}
+
+**HIDDEN CONTEXT (BRAIN):**
+{brain_text}
+"""
+
 # Initialize Session State
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 if "chat_session" not in st.session_state:
-    # System Prompt Injection (Hidden from UI)
-    system_instruction = f"""You are Noah Haag. Your goal is to represent yourself based on the provided context.
-    
-    You have access to two sources of information:
-    1. **RESUME CONTEXT**: Your official professional history. Prioritize this for factual questions about dates, roles, and hard skills.
-    2. **HIDDEN CONTEXT (BRAIN)**: Your deeper thoughts, personality, logistics (availability, relocation), and behavioral stories (STAR method). Use this to answer questions about "soft skills", "failures", "leadership", or "why you love tech".
-    
-    **INSTRUCTIONS:**
-    - Answer questions based STRICTLY on the context provided below.
-    - Keep your answers concise and professional, typically under 3-4 sentences, unless the user asks for more detail.
-    - If the answer is NOT in your Resume or Brain, politely state that you do not have that specific information. DO NOT invent information.
-    - If the user asks for your contact information or how to hire you, provide your email, LinkedIn, and GitHub links (from your sidebar information, if available) clearly and enthusiastically.
-    - Use the 'marine_biology_context' to explain how your scientific background enhances your engineering skills (e.g., rigor, adaptability) when asked about your career transition or background.
-    - When asked for a fun fact, pick one randomly from the 'fun_facts' list in the Brain.
-    - Be engaging and personable, using the "Voice" found in the 'technical_opinions' or 'hobbies' section of the Brain if appropriate.
-
-    **RESUME CONTEXT:**
-    {resume_text}
-    
-    **HIDDEN CONTEXT (BRAIN):**
-    {brain_text}
-    """
     st.session_state.chat_session = client.chats.create(
         model=MODEL_ID,
         config=types.GenerateContentConfig(
@@ -182,8 +184,44 @@ if prompt:
         try:
             # We use the session_state chat object which persists across reruns
             response = st.session_state.chat_session.send_message(prompt)
+        except Exception as e:
+            # Error handling with fallback logic
+            error_msg = str(e)
+            if "429" in error_msg or "Resource exhausted" in error_msg:
+                success_fallback = False
+                for model in BACKUP_MODELS:
+                    try:
+                        # Re-create session with new model and existing history
+                        formatted_history = []
+                        for msg in st.session_state.messages:
+                            role = "model" if msg["role"] == "assistant" else "user"
+                            formatted_history.append(types.Content(role=role, parts=[types.Part(text=msg["content"])])
+                        
+                        st.warning(f"Primary model rate limited. Switching to backup: {model}...")
+                        st.session_state.chat_session = client.chats.create(
+                            model=model,
+                            config=types.GenerateContentConfig(
+                                system_instruction=system_instruction,
+                                temperature=0.7,
+                            ),
+                            history=formatted_history
+                        )
+                        # Retry message
+                        response = st.session_state.chat_session.send_message(prompt)
+                        success_fallback = True
+                        break # Stop loop if successful
+                    except Exception as fallback_e:
+                        continue # Try next backup
+
+                if not success_fallback:
+                    st.error(f"All models are currently busy or unavailable. Please try again later.")
+                    st.stop()
+            else:
+                st.error(f"An error occurred: {e}")
+                st.stop()
             
-            # Add assistant message to UI
+        # Add assistant message to UI (if response was successful)
+        if 'response' in locals() and response:
             with st.chat_message("assistant"):
                 st.markdown(response.text)
                 
@@ -202,9 +240,3 @@ if prompt:
                                         st.markdown(f"🔗 [View Project on GitHub]({artifact_data['link']})")
             
             st.session_state.messages.append({"role": "assistant", "content": response.text})
-            
-        except Exception as e:
-            # If the session somehow died (e.g. timeout), we can try to recover or just show error
-            st.error(f"An error occurred: {e}")
-            # Optional: Force a reload of the page if critical
-            # st.rerun()
