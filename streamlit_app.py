@@ -195,7 +195,7 @@ if prompt:
                         formatted_history = []
                         for msg in st.session_state.messages:
                             role = "model" if msg["role"] == "assistant" else "user"
-                            formatted_history.append(types.Content(role=role, parts=[types.Part(text=msg["content"])])
+                            formatted_history.append(types.Content(role=role, parts=[types.Part(text=msg["content"])]))
                         
                         st.warning(f"Primary model rate limited. Switching to backup: {model}...")
                         st.session_state.chat_session = client.chats.create(
