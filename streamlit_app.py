@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from groq import Groq
 import PyPDF2
 import json
 
@@ -19,6 +20,7 @@ load_dotenv()
 # Constants
 MODEL_ID = "gemini-2.0-flash-001"
 BACKUP_MODELS = ["gemini-1.5-flash", "gemini-1.5-pro"]
+GROQ_MODEL = "llama3-70b-8192"
 RESUME_PATH = "public/Resume.pdf"
 PROFILE_PHOTO_PATH = "public/profile.png" # Assuming a PNG, change if JPG
 BRAIN_PATH = "data/brain.json"
@@ -65,6 +67,17 @@ def get_gemini_client():
         return None
     return genai.Client(api_key=api_key)
 
+@st.cache_resource
+def get_groq_client():
+    """Initializes the Groq client for backup."""
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key and "GROQ_API_KEY" in st.secrets:
+        api_key = st.secrets["GROQ_API_KEY"]
+    
+    if not api_key:
+        return None
+    return Groq(api_key=api_key)
+
 # --- Main UI ---
 
 # Sidebar Content
@@ -93,6 +106,7 @@ st.markdown("Ask questions about my experience, skills, or background.")
 
 # Initialize Client
 client = get_gemini_client()
+groq_client = get_groq_client()
 
 if not client:
     st.warning("Please set your GOOGLE_API_KEY in the environment or Streamlit secrets.")
@@ -114,7 +128,7 @@ else:
     brain_text = json.dumps(brain_content, indent=2)
 
 # System Prompt Injection (Hidden from UI)
-system_instruction = f"""You are Noah Haag. Your goal is to represent yourself based on the provided context. 
+system_instruction = f"""You are Noah Haag. Your goal is to represent yourself based on the provided context.
 
 You have access to two sources of information:
 1. **RESUME CONTEXT**: Your official professional history. Prioritize this for factual questions about dates, roles, and hard skills.
@@ -191,6 +205,8 @@ if prompt:
             print(f"Primary model failed: {error_msg}") # Log to console for debugging
 
             success_fallback = False
+            
+            # 1. Try Gemini Backups
             for model in BACKUP_MODELS:
                 try:
                     # Re-create session with new model and existing history
@@ -220,6 +236,38 @@ if prompt:
                 except Exception as fallback_e:
                     print(f"Backup model {model} failed: {fallback_e}")
                     continue # Try next backup
+
+            # 2. Try Groq Fallback (Llama 3)
+            if not success_fallback and groq_client:
+                try:
+                    st.toast("⚠️ Google API busy. Switching to Groq (Llama 3)...", icon="🦙")
+                    
+                    # Format messages for Groq (OpenAI format)
+                    groq_messages = [{"role": "system", "content": system_instruction}]
+                    for msg in st.session_state.messages:
+                        groq_messages.append({"role": msg["role"], "content": msg["content"]})
+                    groq_messages.append({"role": "user", "content": prompt})
+                    
+                    chat_completion = groq_client.chat.completions.create(
+                        messages=groq_messages,
+                        model=GROQ_MODEL,
+                        temperature=0.7,
+                    )
+                    
+                    response_text = chat_completion.choices[0].message.content
+                    
+                    # Manually handle response since it's not a Gemini object
+                    st.session_state.messages.append({"role": "assistant", "content": response_text})
+                    with st.chat_message("assistant"):
+                        st.markdown(response_text)
+                    success_fallback = True
+                    
+                    # We don't update st.session_state.chat_session because Groq is stateless here
+                    # The next turn will try Gemini again, which is good behavior (retry primary)
+                    st.stop() 
+                    
+                except Exception as groq_e:
+                    print(f"Groq backup failed: {groq_e}")
 
             if not success_fallback:
                 # --- EMERGENCY OFFLINE MODE ---
@@ -274,8 +322,7 @@ if prompt:
                 # Stop further execution to avoid error display
                 st.stop()
             
-        # Add assistant message to UI (if response was successful)
-        if 'response' in locals() and response:
+        # Add assistant message to UI (if response was successful)        if 'response' in locals() and response:
             with st.chat_message("assistant"):
                 st.markdown(response.text)
                 
